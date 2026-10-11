@@ -5,9 +5,10 @@ import {
   Bookmark, Briefcase, ChevronLeft, ChevronRight, Compass, Heart, Images, Info, MessageCircle, RotateCcw, Sparkles, Star, ThumbsDown, X,
 } from 'lucide-react'
 import Sheet from '../Sheet.jsx'
+import useDialog from '../useDialog.js'
 import { IdVerified, ProBadge } from '../Badges.jsx'
 import ProfileLink, { PersonAvatar } from '../ProfileLink.jsx'
-import { money, priceLabel, startingPrice } from '../Booking.jsx'
+import { fromPriceLabel, priceLabel } from '../Booking.jsx'
 import { EmptyState, ErrorState, Loading } from '../States.jsx'
 import { VerticalPickerChip, VerticalPickerSheet } from './VerticalPicker.jsx'
 import { useStore } from '../../store.jsx'
@@ -265,27 +266,59 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
   const stop = (e) => e.stopPropagation()
   const photo = card?.photos[shot] ?? card?.photos[0]
   const cardMatch = p ? matchOf(p.id) : null
+  const prevShot = () => { setShot((s) => Math.max(0, s - 1)); setTappedSides(true) }
+  const nextShot = () => { if (card) { setShot((s) => (s + 1) % card.photos.length); setTappedSides(true) } }
+
+  // Keyboard: the deck works without gestures. Left pass, Right like, Up shortlist, Z undo, I details,
+  // [ and ] flip through the card's photos. Ignored while typing, in a tab list or chips, or with a sheet open.
+  const keys = useRef({})
+  keys.current = { decide, undo, prevShot, nextShot, open: () => setSheet('details'), blocked: !!sheet || !!match }
+  useEffect(() => {
+    const onKey = (e) => {
+      const k = keys.current
+      if (k.blocked || e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
+      if (e.target.closest?.('input, textarea, select, [contenteditable="true"], [role="tablist"], [role="dialog"], .chips, .leaflet-container')) return
+      const act = {
+        ArrowLeft: () => k.decide('pass'), ArrowRight: () => k.decide('like'), ArrowUp: () => k.decide('save'),
+        z: k.undo, Z: k.undo, i: k.open, I: k.open, '[': k.prevShot, ']': k.nextShot,
+      }[e.key]
+      if (!act) return
+      e.preventDefault()
+      act()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+  const cardLabel = card && p
+    ? [
+        `${card.title || card.category || 'Photo'} by ${p.name}`,
+        card.photos.length > 1 && `photo ${shot + 1} of ${card.photos.length}`,
+        p.rating != null ? `rated ${p.rating.toFixed(1)}` : 'new',
+        fromPriceLabel(p),
+        cardMatch != null && `${cardMatch}% match`,
+      ].filter(Boolean).join(', ')
+    : ''
 
   return (
     <div className="discover">
       <header className="home-header">
         {tabs}
         <div className="row gap-xs">
-          <button className="pill-btn dc-icon-pill" onClick={() => setSheet('taste')} aria-label="Your taste">
-            <Sparkles size={16} />
+          <button className="pill-btn dc-icon-pill" onClick={() => setSheet('taste')} aria-label="Your taste" aria-haspopup="dialog">
+            <Sparkles size={16} aria-hidden="true" />
           </button>
-          <button className="pill-btn" onClick={() => setSheet('shortlist')} aria-label={`Shortlist, ${shortlist.size}`}>
-            <Heart size={14} /> {shortlist.size}
+          <button className="pill-btn" onClick={() => setSheet('shortlist')} aria-label={`Shortlist, ${shortlist.size}`} aria-haspopup="dialog">
+            <Heart size={14} aria-hidden="true" /> {shortlist.size}
           </button>
         </div>
       </header>
 
-      <div className="chips scroll-x pad-x">
+      <div className="chips scroll-x pad-x" role="group" aria-label="Style">
         <VerticalPickerChip vertical={verticalInfo} onClick={() => setSheet('vertical')} />
         <span className="dc-chip-divider" aria-hidden="true" />
-        <button className={`chip toggle ${!category ? 'on' : ''}`} onClick={() => pickCategory(null)}>All styles</button>
+        <button className={`chip toggle ${!category ? 'on' : ''}`} aria-pressed={!category} onClick={() => pickCategory(null)}>All styles</button>
         {categories.map((c) => (
-          <button key={c.slug} className={`chip toggle ${category === c.slug ? 'on' : ''}`} onClick={() => pickCategory(c.slug)}>
+          <button key={c.slug} className={`chip toggle ${category === c.slug ? 'on' : ''}`} aria-pressed={category === c.slug} onClick={() => pickCategory(c.slug)}>
             {c.name}
           </button>
         ))}
@@ -314,8 +347,10 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
             }
           />
         ))}
+        {/* Screen readers hear each new card; the buttons below (or the arrow keys) decide on it. */}
+        <div className="sr-only" aria-live="polite" aria-atomic="true">{cardLabel}</div>
         {next && (
-          <div className="swipe-card behind">
+          <div className="swipe-card behind" aria-hidden="true">
             <img src={next.photos[0]?.src} alt="" draggable={false} />
           </div>
         )}
@@ -329,20 +364,26 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
             onPointerUp={onUp}
             onPointerCancel={onUp}
           >
-            <img src={photo?.src} alt={card.title || ''} draggable={false} />
+            <img src={photo?.src} alt={cardLabel} draggable={false} />
 
             {card.photos.length > 1 && (
               <>
-                {shot > 0 && <span className="edge-hint left"><ChevronLeft size={18} /></span>}
-                <span className="edge-hint right"><ChevronRight size={18} /></span>
+                {shot > 0 && (
+                  <button type="button" className="edge-hint left" onPointerDown={stop} onClick={prevShot} aria-label="Previous photo" aria-keyshortcuts="[">
+                    <ChevronLeft size={18} aria-hidden="true" />
+                  </button>
+                )}
+                <button type="button" className="edge-hint right" onPointerDown={stop} onClick={nextShot} aria-label="Next photo" aria-keyshortcuts="]">
+                  <ChevronRight size={18} aria-hidden="true" />
+                </button>
               </>
             )}
             {!tappedSides && card.photos.length > 1 && (
-              <div className="tap-hint">Tap the edges for {card.photos.length} photos · swipe to like or pass</div>
+              <div className="tap-hint" aria-hidden="true">Tap the edges for {card.photos.length} photos · swipe to like or pass</div>
             )}
 
             {card.photos.length > 1 && (
-              <div className="shot-bars">
+              <div className="shot-bars" aria-hidden="true">
                 {card.photos.map((ph, i) => (
                   <span key={ph.id} className={i === shot ? 'on' : ''} />
                 ))}
@@ -355,14 +396,14 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
                   {card.reason}
                 </div>
               )}
-              <button className="card-icon" onPointerDown={stop} onClick={() => setSheet('correct')} aria-label="Not into this">
-                <ThumbsDown size={16} />
+              <button className="card-icon" onPointerDown={stop} onClick={() => setSheet('correct')} aria-label="Not into this" aria-haspopup="dialog">
+                <ThumbsDown size={16} aria-hidden="true" />
               </button>
             </div>
 
-            <span className="stamp like" style={{ opacity: exit === 'like' ? 1 : Math.max(0, drag.x / THRESHOLD) }}>LIKE</span>
-            <span className="stamp pass" style={{ opacity: exit === 'pass' ? 1 : Math.max(0, -drag.x / THRESHOLD) }}>PASS</span>
-            <span className="stamp save" style={{ opacity: exit === 'save' ? 1 : Math.max(0, -drag.y / THRESHOLD) }}>SHORTLIST</span>
+            <span className="stamp like" aria-hidden="true" style={{ opacity: exit === 'like' ? 1 : Math.max(0, drag.x / THRESHOLD) }}>LIKE</span>
+            <span className="stamp pass" aria-hidden="true" style={{ opacity: exit === 'pass' ? 1 : Math.max(0, -drag.x / THRESHOLD) }}>PASS</span>
+            <span className="stamp save" aria-hidden="true" style={{ opacity: exit === 'save' ? 1 : Math.max(0, -drag.y / THRESHOLD) }}>SHORTLIST</span>
 
             <div className="card-foot">
               <div className="row gap-xs">
@@ -382,7 +423,7 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
                       <span>New</span>
                     )}
                     <span>
-                      {[card.category, startingPrice(p) != null && `from ${money(startingPrice(p))}`].filter(Boolean).map((s) => `· ${s}`).join(' ')}
+                      {[card.category, fromPriceLabel(p)].filter(Boolean).map((s) => `· ${s}`).join(' ')}
                     </span>
                   </div>
                 </div>
@@ -399,38 +440,42 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
         )}
       </div>
 
-      <div className="swipe-actions">
-        <button className="round-btn small" onClick={undo} disabled={!history.length || !!exit} aria-label="Undo">
-          <RotateCcw size={18} />
+      <div className="swipe-actions" role="group" aria-label="Decide on this photo" aria-describedby="deck-keys">
+        <button className="round-btn small" onClick={undo} disabled={!history.length || !!exit} aria-label="Undo" aria-keyshortcuts="Z">
+          <RotateCcw size={18} aria-hidden="true" />
         </button>
-        <button className="round-btn pass" onClick={() => decide('pass')} disabled={!card} aria-label="Pass">
-          <X size={28} />
+        <button className="round-btn pass" onClick={() => decide('pass')} disabled={!card} aria-label="Pass" aria-keyshortcuts="ArrowLeft">
+          <X size={28} aria-hidden="true" />
         </button>
-        <button className="round-btn save" onClick={() => decide('save')} disabled={!card} aria-label="Shortlist">
-          <Bookmark size={22} />
+        <button className="round-btn save" onClick={() => decide('save')} disabled={!card} aria-label="Shortlist" aria-keyshortcuts="ArrowUp">
+          <Bookmark size={22} aria-hidden="true" />
         </button>
-        <button className="round-btn like" onClick={() => decide('like')} disabled={!card} aria-label="Like">
-          <Heart size={28} />
+        <button className="round-btn like" onClick={() => decide('like')} disabled={!card} aria-label="Like" aria-keyshortcuts="ArrowRight">
+          <Heart size={28} aria-hidden="true" />
         </button>
-        <button className="round-btn small" onClick={() => setSheet('details')} disabled={!card} aria-label="Details">
-          <Info size={18} />
+        <button className="round-btn small" onClick={() => setSheet('details')} disabled={!card} aria-label="Details" aria-keyshortcuts="I" aria-haspopup="dialog">
+          <Info size={18} aria-hidden="true" />
         </button>
       </div>
+      {/* Shown while the keyboard is in use (see .deck-keys); always available to screen readers. */}
+      <p id="deck-keys" className="deck-keys">
+        Keyboard: <kbd aria-label="Left arrow">←</kbd> pass · <kbd aria-label="Right arrow">→</kbd> like · <kbd aria-label="Up arrow">↑</kbd> shortlist · <kbd>Z</kbd> undo · <kbd>I</kbd> details
+      </p>
 
       {/* Card details: who shot it, settings, packages and availability */}
-      <Sheet open={sheet === 'details' && !!card} onClose={() => setSheet(null)}>
+      <Sheet open={sheet === 'details' && !!card} onClose={() => setSheet(null)} label={card ? `Details: ${cardLabel}` : 'Details'}>
         {card && (
           <>
             {card.title && <h3 className="mb-sm">{card.title}</h3>}
             <div className="detail-shots">
-              {card.photos.map((ph) => (
-                <Link key={ph.id} to={`/gallery/${p.id}?post=${card.albumId}&photo=${ph.id}`}>
+              {card.photos.map((ph, i) => (
+                <Link key={ph.id} to={`/gallery/${p.id}?post=${card.albumId}&photo=${ph.id}`} aria-label={`Photo ${i + 1} of ${card.photos.length}, open in the gallery`}>
                   <img src={ph.src} alt="" />
                 </Link>
               ))}
             </div>
             <Link to={`/gallery/${p.id}?post=${card.albumId}&photo=${photo?.id ?? card.photoId}`} className="small inline-icon mt-sm">
-              <Images size={14} /> View the full album
+              <Images size={14} aria-hidden="true" /> View the full album
             </Link>
             <Link to={`/u/${p.id}`} className="row gap-xs mt">
               <PersonAvatar id={p.id} src={p.avatar} name={p.name} username={p.username} />
@@ -462,7 +507,7 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
                 {card.tags.map((t) => <span key={t} className="chip">{t}</span>)}
               </div>
             )}
-            <h4 className="section-title">Packages</h4>
+            <h2 className="section-title h4">Packages</h2>
             {p.packages.length === 0 && <div className="muted small">No packages listed yet. Ask for a quote.</div>}
             {p.packages.map((pkg) => (
               <Link key={pkg.id} to={`/book/${p.id}?pkg=${pkg.id}`} className="pkg-line small line" aria-label={`Book ${pkg.name}, ${priceLabel(pkg)}`}>
@@ -471,7 +516,7 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
                 <ChevronRight size={14} className="muted" />
               </Link>
             ))}
-            <h4 className="section-title">Next 2 weeks</h4>
+            <h2 className="section-title h4">Next 2 weeks</h2>
             <NextTwoWeeks providerId={p.id} />
             <div className="row gap-xs mt">
               <button className="btn ghost grow" onClick={() => message(p.id)}><MessageCircle size={16} /> Ask</button>
@@ -561,13 +606,14 @@ function NextTwoWeeks({ providerId }) {
   if (free.loading) return <Loading inline />
   if (free.error) return <ErrorState error={free.error} onRetry={free.reload} />
   return (
-    <div className="avail-strip">
+    <div className="avail-strip" role="list" aria-label="Availability, next 2 weeks" tabIndex={0}>
       {days.map((d) => {
         const busy = !free.data?.has(toKey(d))
         return (
-          <div key={toKey(d)} className={`avail-day ${busy ? 'busy' : ''}`} title={busy ? 'Not available' : 'Available'}>
-            <span>{d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2)}</span>
-            <b>{d.getDate()}</b>
+          <div key={toKey(d)} className={`avail-day ${busy ? 'busy' : ''}`} title={busy ? 'Not available' : 'Available'} role="listitem">
+            <span aria-hidden="true">{d.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2)}</span>
+            <b aria-hidden="true">{d.getDate()}</b>
+            <span className="sr-only">{d.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}: {busy ? 'not available' : 'available'}</span>
           </div>
         )
       })}
@@ -605,7 +651,7 @@ function TasteSheet({ open, uid, corrections, removeCorrection }) {
           </div>
         ))}
       </div>
-      <h4 className="section-title">Showing you less</h4>
+      <h2 className="section-title h4">Showing you less</h2>
       {corrections.length === 0 && <div className="muted small">Nothing yet. Tap the thumbs-down on a photo to see less of a style.</div>}
       <div className="chips">
         {corrections.map((tag) => (
@@ -662,7 +708,7 @@ function ShortlistSheet({ open, uid, shortlist, likedCardsFrom, matchOf, onMessa
               {[
                 liked.length > 0 && `You liked ${liked.length} shot${liked.length > 1 ? 's' : ''}`,
                 sp.rating != null ? `★ ${sp.rating.toFixed(1)}` : 'New',
-                startingPrice(sp) != null && `from ${money(startingPrice(sp))}`,
+                fromPriceLabel(sp),
               ].filter(Boolean).join(' · ')}
             </div>
           </div>
@@ -687,27 +733,29 @@ function ShortlistSheet({ open, uid, shortlist, likedCardsFrom, matchOf, onMessa
 }
 
 function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortlisted, onShortlist, onClose, onMessage }) {
+  const ref = useRef(null)
+  useDialog(ref, !!provider, onClose)
   if (!provider) return null
   const first = provider.name.split(' ')[0]
   return createPortal(
     <div className="match-overlay" onClick={onClose}>
-      <div className="match-card" onClick={(e) => e.stopPropagation()}>
+      <div className="match-card" ref={ref} role="dialog" aria-modal="true" aria-labelledby="match-title" onClick={(e) => e.stopPropagation()}>
         <div className="match-shots">
           {cards.slice(0, 2).map((c, i) => (
-            <Link key={c.id} to={`/gallery/${provider.id}?post=${c.albumId}`} aria-label="Open in the gallery">
+            <Link key={c.id} to={`/gallery/${provider.id}?post=${c.albumId}`} aria-label={`Open ${first}’s photo in the gallery`}>
               <img src={c.photos[0]?.src} alt="" className={i ? 'r' : 'l'} />
             </Link>
           ))}
-          <Link to={`/u/${provider.id}`}>
+          <Link to={`/u/${provider.id}`} aria-label={`${provider.name}’s profile`}>
             <img className="match-avatar" src={provider.avatar} alt="" />
           </Link>
         </div>
-        <h2>You keep liking <Link to={`/u/${provider.id}`} className="underline-link">{first}</Link>'s work</h2>
+        <h2 id="match-title">You keep liking <Link to={`/u/${provider.id}`} className="underline-link">{first}</Link>'s work</h2>
         <p className="muted small">
           {[
             tasteMatch != null && `${tasteMatch}% taste match`,
             provider.specialties.join(', '),
-            startingPrice(provider) != null && `from ${money(startingPrice(provider))}`,
+            fromPriceLabel(provider),
           ].filter(Boolean).join(' · ')}
         </p>
         <Link to={`/book/${provider.id}`} className="btn accent block mt">

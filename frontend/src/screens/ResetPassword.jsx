@@ -53,7 +53,7 @@ export default function ResetPassword() {
             <div className="spinner" />
           ) : (
             <>
-              <h3>That reset link didn’t work</h3>
+              <h2 className="h3">That reset link didn’t work</h2>
               <p className="muted small">It may have expired or already been used. Request a new one from the log-in screen.</p>
               <Link to="/sign-in" className="btn mt">Back to log in</Link>
             </>
@@ -68,22 +68,25 @@ export default function ResetPassword() {
       <TopBar title="New password" />
       <form className="pad" onSubmit={save} noValidate>
         <p className="muted small">Choose a password for <b className="ink">{user.email}</b>. You’ll use it to log in from now on.</p>
-        <label className="field mt">
-          <span>New password</span>
+        <div className="field mt">
+          <label htmlFor="reset-password">New password</label>
           <div className="input-prefix">
-            <input type={show ? 'text' : 'password'} autoComplete="new-password" placeholder={`At least ${MIN_PASSWORD} characters`}
+            <input id="reset-password" type={show ? 'text' : 'password'} autoComplete="new-password" placeholder={`At least ${MIN_PASSWORD} characters`}
+              aria-describedby={['reset-hint', error && 'reset-error'].filter(Boolean).join(' ')}
               value={password} onChange={(e) => setPassword(e.target.value)} autoFocus />
-            <button type="button" className="icon-btn" onClick={() => setShow((v) => !v)} aria-label={show ? 'Hide password' : 'Show password'}>
-              {show ? <EyeOff size={16} /> : <Eye size={16} />}
+            <button type="button" className="icon-btn" onClick={() => setShow((v) => !v)} aria-label="Show password" aria-pressed={show}>
+              {show ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
             </button>
           </div>
-        </label>
+          <span id="reset-hint" className="sr-only">At least {MIN_PASSWORD} characters</span>
+        </div>
         <label className="field mt-sm">
           <span>Confirm password</span>
           <input className="input" type={show ? 'text' : 'password'} autoComplete="new-password"
+            aria-describedby={error ? 'reset-error' : undefined}
             value={confirm} onChange={(e) => setConfirm(e.target.value)} />
         </label>
-        {error && <div className="form-error mt-sm" role="alert">{error}</div>}
+        {error && <div className="form-error mt-sm" role="alert" id="reset-error">{error}</div>}
         <button className="btn block mt" disabled={busy || !password || !confirm}>{busy ? 'Saving…' : 'Save password'}</button>
       </form>
     </div>

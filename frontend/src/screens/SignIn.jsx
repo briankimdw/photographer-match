@@ -206,7 +206,7 @@ export default function SignIn() {
 
   const BackLink = ({ label = 'Back' }) => (
     <button className="link-btn small muted" onClick={() => go('form')}>
-      <ArrowLeft size={14} /> {label}
+      <ArrowLeft size={14} aria-hidden="true" /> {label}
     </button>
   )
 
@@ -219,7 +219,7 @@ export default function SignIn() {
           )}
         </div>
         <button className="icon-btn signin-close" onClick={() => (location.key === 'default' ? navigate('/') : navigate(-1))} aria-label="Close">
-          <X size={22} />
+          <X size={22} aria-hidden="true" />
         </button>
       </div>
 
@@ -244,6 +244,7 @@ export default function SignIn() {
                 { value: 'signup', label: 'Create account' },
               ]}
               value={mode}
+              label="Log in or create an account"
               onChange={(m) => { setMode(m); setError(''); setNotice('') }}
             />
 
@@ -251,33 +252,37 @@ export default function SignIn() {
               <label className="field">
                 <span>Email</span>
                 <input className="input" type="email" inputMode="email" autoComplete="email"
-                  placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                  aria-describedby={error ? 'signin-error' : undefined} />
               </label>
-              <label className="field mt-sm">
+              {/* Not a wrapping <label>: it holds two buttons, which would end up in the field's name. */}
+              <div className="field mt-sm">
                 <span className="row between">
-                  Password
+                  <label htmlFor="signin-password">Password</label>
                   {mode === 'login' && (
                     <button type="button" className="link-btn tiny" onClick={() => go('forgot')}>Forgot password?</button>
                   )}
                 </span>
                 <div className="input-prefix">
-                  <input type={showPassword ? 'text' : 'password'}
+                  <input id="signin-password" type={showPassword ? 'text' : 'password'}
                     autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
                     placeholder={mode === 'signup' ? `At least ${MIN_PASSWORD} characters` : ''}
+                    aria-describedby={[mode === 'signup' && 'signin-pw-hint', error && 'signin-error'].filter(Boolean).join(' ') || undefined}
                     value={password} onChange={(e) => setPassword(e.target.value)} />
                   <button type="button" className="icon-btn" onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}>
-                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    aria-label="Show password" aria-pressed={showPassword}>
+                    {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
                   </button>
                 </div>
-              </label>
+                {mode === 'signup' && <span id="signin-pw-hint" className="sr-only">At least {MIN_PASSWORD} characters</span>}
+              </div>
               <button className="btn block mt" disabled={busy || !email.trim() || !password}>
                 {busy ? 'One moment…' : mode === 'login' ? 'Log in' : 'Create account'}
               </button>
             </form>
 
             <button className="link-btn small mt center-self" onClick={sendLink} disabled={busy}>
-              <Mail size={14} /> Email me a sign-in link instead
+              <Mail size={14} aria-hidden="true" /> Email me a sign-in link instead
             </button>
           </>
         )}
@@ -292,7 +297,7 @@ export default function SignIn() {
             <form onSubmit={verifyCode} className="mt">
               <input className="input code-input" inputMode="numeric" autoComplete="one-time-code" maxLength={10}
                 placeholder="••••••" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                aria-label="Sign-in code" autoFocus />
+                aria-label="Sign-in code" aria-describedby={error ? 'signin-error' : undefined} autoFocus />
               <button className="btn block mt-sm" disabled={busy || code.length < 6}>{busy ? 'Checking…' : 'Sign in'}</button>
             </form>
             <button className="link-btn small mt" disabled={resendIn > 0 || busy} onClick={sendLink}>
@@ -324,6 +329,7 @@ export default function SignIn() {
             <p className="muted small">Enter your account email and we’ll send a link to choose a new password.</p>
             <form onSubmit={sendReset} noValidate className="mt">
               <input className="input" type="email" inputMode="email" autoComplete="email" placeholder="you@example.com"
+                aria-label="Email" aria-describedby={error ? 'signin-error' : undefined}
                 value={email} onChange={(e) => setEmail(e.target.value)} autoFocus />
               <button className="btn block mt-sm" disabled={busy || !email.trim()}>{busy ? 'Sending…' : 'Send reset link'}</button>
             </form>
@@ -341,7 +347,7 @@ export default function SignIn() {
         )}
 
         {notice && <div className="form-notice mt-sm" role="status">{notice}</div>}
-        {error && <div className="form-error mt-sm" role="alert">{error}</div>}
+        {error && <div className="form-error mt-sm" role="alert" id="signin-error">{error}</div>}
 
         <p className="tiny muted signin-legal">
           By continuing you agree to the <Link to="#">Terms</Link> and <Link to="#">Privacy Policy</Link>.

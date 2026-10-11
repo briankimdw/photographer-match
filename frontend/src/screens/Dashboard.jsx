@@ -133,13 +133,14 @@ function Requests({ bookings }) {
             <>
               {r.expiresIn && <div className="tiny warn inline-icon"><Clock size={12} /> Expires in {r.expiresIn}</div>}
               <div className="row gap-xs mt-sm">
-                <button className="btn sm grow" disabled={busy === r.id} onClick={() => respond(r, 'accept')}>Accept</button>
+                {/* Quote requests have no price to accept: the database needs a counter offer first. */}
+                {r.total != null && <button className="btn sm grow" disabled={busy === r.id} onClick={() => respond(r, 'accept')}>Accept</button>}
                 <button
-                  className="btn ghost sm grow"
+                  className={`btn sm grow ${r.total == null ? '' : 'ghost'}`}
                   disabled={busy === r.id}
                   onClick={() => { setCounterFor(r); setCounterPrice(r.total == null ? '' : String(r.total)); setCounterNote('') }}
                 >
-                  Counter
+                  {r.total == null ? 'Send a price' : 'Counter'}
                 </button>
                 <button className="btn ghost sm grow danger" disabled={busy === r.id} onClick={() => respond(r, 'decline')}>Decline</button>
               </div>
@@ -167,7 +168,7 @@ function Requests({ bookings }) {
               <span>Message</span>
               <textarea className="input" rows={3} placeholder="Explain the change" value={counterNote} onChange={(e) => setCounterNote(e.target.value)} />
             </label>
-            <button className="btn block mt" disabled={!counterPrice || Number(counterPrice) < 0 || busy === counterFor.id} onClick={sendCounter}>
+            <button className="btn block mt" disabled={!(Number(counterPrice) > 0) || busy === counterFor.id} onClick={sendCounter}>
               {busy === counterFor.id ? 'Sending…' : 'Send counter'}
             </button>
           </>

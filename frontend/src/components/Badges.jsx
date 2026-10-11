@@ -8,8 +8,8 @@ import Sheet from './Sheet.jsx'
 export const IdVerified = ({ label = false, explain = false, name }) => {
   const content = (
     <>
-      <ShieldCheck size={13} />
-      {label && 'ID verified'}
+      <ShieldCheck size={13} aria-hidden="true" />
+      {label ? 'ID verified' : <span className="sr-only">ID verified</span>}
     </>
   )
   if (!explain) return <span className="badge badge-id" title="Identity verified">{content}</span>
@@ -17,20 +17,20 @@ export const IdVerified = ({ label = false, explain = false, name }) => {
 }
 
 export const ProBadge = ({ explain = false, name }) => {
-  const content = <><BadgeCheck size={13} /> PRO</>
+  const content = <><BadgeCheck size={13} aria-hidden="true" /> PRO</>
   if (!explain) return <span className="badge badge-pro" title="Verified Pro">{content}</span>
   return <ExplainBadge kind="pro" className="badge badge-pro" name={name}>{content}</ExplainBadge>
 }
 
 export const VerifiedClient = () => (
   <span className="badge badge-id">
-    <ShieldCheck size={13} /> Verified client
+    <ShieldCheck size={13} aria-hidden="true" /> Verified client
   </span>
 )
 
 export const RealPhoto = ({ overlay }) => (
   <span className={`badge badge-real ${overlay ? 'overlay' : ''}`} title="Verified with RAW file">
-    <Camera size={12} /> Real Photo
+    <Camera size={12} aria-hidden="true" /> Real Photo
   </span>
 )
 
@@ -82,7 +82,7 @@ function ExplainBadge({ kind, className, name, children }) {
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} title={info.title}>
         <div className={`explain explain-${kind}`}>
-          <span className="explain-icon"><Icon size={26} /></span>
+          <span className="explain-icon" aria-hidden="true"><Icon size={26} /></span>
           <p>{info.lead(who)}</p>
           <ul>
             {info.points.map((p) => <li key={p} className="small muted">{p}</li>)}

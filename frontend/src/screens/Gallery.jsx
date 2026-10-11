@@ -7,7 +7,7 @@ import ProfileLink from '../components/ProfileLink.jsx'
 import { BeforeAfter } from '../components/Media.jsx'
 import { SaveSheet, ModerationSheet } from '../components/PostSheets.jsx'
 import ShareSheet from '../components/share/ShareSheet.jsx'
-import { money, startingPrice } from '../components/Booking.jsx'
+import { fromPriceLabel } from '../components/Booking.jsx'
 import { IdVerified, ProBadge } from '../components/Badges.jsx'
 import { EmptyState, ErrorState, Loading } from '../components/States.jsx'
 import ManagePostSheets from '../components/upload/ManagePost.jsx'
@@ -68,15 +68,14 @@ export default function Gallery() {
 
   const { provider: p, albums } = data
   const isMine = !!user && p.profileId === user.id
-  const from = startingPrice(p)
   return (
     <AlbumViewer
       albums={albums}
       owner={{ name: p.name, avatar: p.avatar, idVerified: p.idVerified, pro: p.pro, username: p.username, profileId: p.id, providerId: p.id, blockProfileId: p.profileId }}
       book={isMine ? null : {
         to: `/book/${p.id}`,
-        label: `Book ${p.name.split(' ')[0]}`,
-        line: `${from != null ? `from ${money(from)}` : 'Custom quote'} · ${p.rating != null ? `★ ${p.rating.toFixed(1)}` : 'New'}`,
+        label: `Book ${p.shortName || p.name.split(' ')[0]}`,
+        line: `${fromPriceLabel(p) || 'Custom quote'} · ${p.rating != null ? `★ ${p.rating.toFixed(1)}` : 'New'}`,
         lineTo: `/u/${p.id}?tab=${p.rating != null ? 'reviews' : 'packages'}`,
       }}
       startPost={params.get('post')}
@@ -95,7 +94,7 @@ function GalleryClose({ to = '/' }) {
   const navigate = useNavigate()
   return (
     <header className="reel-top">
-      <button className="icon-btn" onClick={() => (location.key === 'default' ? navigate(to, { replace: true }) : navigate(-1))} aria-label="Close"><X size={24} /></button>
+      <button className="icon-btn" onClick={() => (location.key === 'default' ? navigate(to, { replace: true }) : navigate(-1))} aria-label="Close"><X size={24} aria-hidden="true" /></button>
     </header>
   )
 }
@@ -451,7 +450,7 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
                             {a.type === 'beforeafter' ? (
                               <div className="reel-ba"><BeforeAfter src={p.src} beforeSrc={p.beforeSrc} /></div>
                             ) : (
-                              <img src={p.src} alt="" draggable={false} />
+                              <img src={p.src} alt={current && j === at ? `${a.title || 'Photo'}${a.photos.length > 1 ? `, photo ${j + 1} of ${a.photos.length}` : ''}` : ''} draggable={false} />
                             )}
                           </div>
                         )}
@@ -466,15 +465,22 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
 
         {/* Everything below fades out while you press and hold (and steps aside while zoomed). */}
         <header className="reel-top reel-ui">
-          <button className="icon-btn" onClick={() => close('right')} aria-label="Close"><X size={24} /></button>
+          <button className="icon-btn" onClick={() => close('right')} aria-label="Close"><X size={24} aria-hidden="true" /></button>
+          {/* Keyboard / switch access to what swipes do; shown when focused. Arrow keys work too. */}
+          <span className="reel-kbd-nav" role="group" aria-label="Browse posts">
+            <button type="button" onClick={() => goPhoto(photoIndex - 1)} disabled={zoomed || photoIndex === 0} aria-keyshortcuts="ArrowLeft">Previous photo</button>
+            <button type="button" onClick={() => goPhoto(photoIndex + 1)} disabled={zoomed || photoIndex === lastPhoto} aria-keyshortcuts="ArrowRight">Next photo</button>
+            <button type="button" onClick={() => goAlbum(index - 1)} disabled={zoomed || index === 0} aria-keyshortcuts="ArrowUp">Previous post</button>
+            <button type="button" onClick={() => goAlbum(index + 1)} disabled={zoomed || index === lastAlbum} aria-keyshortcuts="ArrowDown">Next post</button>
+          </span>
           {zoomed ? (
             <button className="reel-zoom-pill" onClick={() => setZoom(NO_ZOOM)}>{zoom.s.toFixed(1)}× · reset</button>
           ) : (
             <span className="reel-top-right">
-              {album.photos.length > 1 && <span className="reel-count">{photoIndex + 1} / {album.photos.length}</span>}
+              {album.photos.length > 1 && <span className="reel-count" aria-hidden="true">{photoIndex + 1} / {album.photos.length}</span>}
               {manage && (
                 <button className="icon-btn reel-more" onClick={() => setManageSheet('menu')} aria-label="Edit or delete this post">
-                  <MoreHorizontal size={22} />
+                  <MoreHorizontal size={22} aria-hidden="true" />
                 </button>
               )}
             </span>
@@ -483,14 +489,15 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
 
         <div className="reel-bottom reel-ui reel-hide-zoomed" ref={panelRef}>
           {album.photos.length > 1 && (
-            <div className="reel-dots">
+            <div className="reel-dots" aria-hidden="true">
               {album.photos.map((p, j) => <span key={photoKey(p)} className={j === photoIndex ? 'on' : ''} />)}
             </div>
           )}
           <div className="reel-title-row">
             <div className="grow">
-              <div className="reel-title">{album.title}</div>
-              <div className="reel-meta">
+              <h1 className="reel-title">{album.title}</h1>
+              <div className="reel-meta" aria-live="polite">
+                {album.photos.length > 1 && <span className="sr-only">Photo {photoIndex + 1} of {album.photos.length}. </span>}
                 Post {index + 1} of {albums.length}{album.occasion && ` · ${album.occasion.name}`}{album.location && ` · ${album.location}`}{album.date && ` · ${album.date}`}
               </div>
             </div>
@@ -498,18 +505,18 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
               <button
                 className="icon-btn"
                 onClick={() => toggleLike({ id: photoKey(photo), albumId: album.id, providerId: album.providerId ?? owner.providerId })}
-                aria-label={liked.has(photoKey(photo)) ? 'Unlike' : 'Like'}
+                aria-label="Like" aria-pressed={liked.has(photoKey(photo))}
               >
-                <Heart size={22} fill={liked.has(photoKey(photo)) ? 'currentColor' : 'none'} />
+                <Heart size={22} fill={liked.has(photoKey(photo)) ? 'currentColor' : 'none'} aria-hidden="true" />
               </button>
-              <button className="icon-btn" onClick={() => setSaveFor(photoKey(photo))} aria-label="Save">
-                <Bookmark size={22} fill={saved.has(photoKey(photo)) ? 'currentColor' : 'none'} />
+              <button className="icon-btn" onClick={() => setSaveFor(photoKey(photo))} aria-label={saved.has(photoKey(photo)) ? 'Saved. Change collection' : 'Save'} aria-haspopup="dialog">
+                <Bookmark size={22} fill={saved.has(photoKey(photo)) ? 'currentColor' : 'none'} aria-hidden="true" />
               </button>
-              <button className="icon-btn" onClick={() => setSharing(true)} aria-label="Share">
-                <Send size={21} />
+              <button className="icon-btn" onClick={() => setSharing(true)} aria-label="Share" aria-haspopup="dialog">
+                <Send size={21} aria-hidden="true" />
               </button>
-              <button className="icon-btn" onClick={() => setInfo(true)} aria-label="Album details">
-                <Info size={22} />
+              <button className="icon-btn" onClick={() => setInfo(true)} aria-label="Album details" aria-haspopup="dialog">
+                <Info size={22} aria-hidden="true" />
               </button>
             </div>
           </div>
@@ -538,7 +545,7 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
         </div>
 
         {!hintSeen && (
-          <div className="reel-hint reel-ui">
+          <div className="reel-hint reel-ui" aria-hidden="true">
             {album.photos.length > 1 ? 'Swipe ← for more of this shoot · ' : ''}↑ next album
             <br />
             Double-tap to zoom · drag off the photo to close
@@ -554,19 +561,19 @@ export function AlbumViewer({ albums, owner, book, startPost, startPhoto, closeF
         </div>
         {album.credits?.length > 0 && (
           <>
-            <h4 className="section-title">Credits</h4>
+            <h2 className="section-title h4">Credits</h2>
             <CreditChips credits={album.credits} onNavigate={() => setInfo(false)} />
           </>
         )}
         {hasExif(photo.exif) && (
           <>
-            <h4 className="section-title">Gear & settings{album.photos.length > 1 ? ` · photo ${photoIndex + 1}` : ''}</h4>
+            <h2 className="section-title h4">Gear & settings{album.photos.length > 1 ? ` · photo ${photoIndex + 1}` : ''}</h2>
             <ExifPanel exif={photo.exif} />
           </>
         )}
         {(album.genre || album.occasion || album.tags?.length > 0 || album.autoTags?.length > 0) && (
           <>
-            <h4 className="section-title">Tags</h4>
+            <h2 className="section-title h4">Tags</h2>
             <div className="chips">
               {album.genre && <Link to={`/search?cat=${encodeURIComponent(album.genre)}`} className="chip solid chip-link" aria-label={`Find more ${album.genre}`}>{album.genre}</Link>}
               {album.occasion && <Link to={`/occasions/${album.occasion.slug}`} className="chip chip-link" aria-label={`Plan a ${album.occasion.name}`}>{album.occasion.name}</Link>}

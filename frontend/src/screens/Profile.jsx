@@ -48,20 +48,24 @@ export function AvailabilityStrip({ free, providerId, unavailable, selected, onS
   const freeSet = free || loaded
   const picked = Array.isArray(selected) ? selected : selected ? [selected] : []
   return (
-    <div className={`avail-strip ${pending || (providerId && !freeSet) ? 'pending' : ''}`}>
+    <div className={`avail-strip ${pending || (providerId && !freeSet) ? 'pending' : ''}`} role="group" aria-label="Availability, next 2 weeks"
+      aria-busy={pending || (providerId && !freeSet) ? true : undefined} tabIndex={onSelect ? undefined : 0}>
       {days.map((d, i) => {
         const key = toKey(d)
         const label = fmtBooking(d)
         const busy = freeSet ? !freeSet.has(key) : !providerId && !!unavailable?.includes(i)
+        const on = picked.includes(label) || picked.includes(key)
         return (
           <button
             key={key}
-            className={`avail-day ${busy ? 'busy' : ''} ${picked.includes(label) || picked.includes(key) ? 'on' : ''}`}
+            className={`avail-day ${busy ? 'busy' : ''} ${on ? 'on' : ''}`}
             disabled={busy || !onSelect}
+            aria-pressed={onSelect && !busy ? on : undefined}
+            aria-label={`${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}, ${busy ? 'not available' : 'available'}`}
             onClick={() => onSelect?.(label, key)}
           >
-            <span>{DAYS[d.getDay()]}</span>
-            <b>{d.getDate()}</b>
+            <span aria-hidden="true">{DAYS[d.getDay()]}</span>
+            <b aria-hidden="true">{d.getDate()}</b>
           </button>
         )
       })}
@@ -159,7 +163,7 @@ export default function Profile() {
   const isMine = !!user && person.profileId === user.id
   const handle = person.username || provider?.slug
   const link = `/u/${provider ? provider.slug : person.username || person.id}`
-  const firstName = (person.name || '').split(' ')[0]
+  const firstName = person.shortName || (person.name || '').split(' ')[0]
 
   const contact = async () => {
     if (!user) return navigate(`/sign-in?next=${encodeURIComponent(pathname + search)}`)
@@ -411,7 +415,7 @@ export default function Profile() {
           })}
           {provider.addons?.length > 0 && (
             <>
-              <h4 className="section-title">Add-ons</h4>
+              <h2 className="section-title h4">Add-ons</h2>
               {provider.addons.map((a) => (
                 <div key={a.id} className="row between small line">
                   <span>{a.name}</span>
@@ -420,7 +424,7 @@ export default function Profile() {
               ))}
             </>
           )}
-          <h4 className="section-title">Service area</h4>
+          <h2 className="section-title h4">Service area</h2>
           <div className="small">{provider.serviceArea}</div>
           <div className="muted small">Travel fee: {provider.travelFee}</div>
           {provider.location && (
@@ -442,7 +446,7 @@ export default function Profile() {
           )}
           {provider.gear.bodies.length > 0 && (
             <>
-              <h4 className="section-title">Bodies</h4>
+              <h2 className="section-title h4">Bodies</h2>
               {provider.gear.bodies.map((g) => (
                 <div key={g} className="gear-row"><Camera size={16} /> {g}</div>
               ))}
@@ -450,7 +454,7 @@ export default function Profile() {
           )}
           {provider.gear.lenses.length > 0 && (
             <>
-              <h4 className="section-title">Lenses</h4>
+              <h2 className="section-title h4">Lenses</h2>
               {provider.gear.lenses.map((g) => (
                 <div key={g} className="gear-row"><CircleDot size={16} /> {g}</div>
               ))}

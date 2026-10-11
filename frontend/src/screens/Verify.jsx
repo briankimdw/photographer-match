@@ -24,14 +24,14 @@ export default function Verify() {
           {verified ? (
             <div className="center-col">
               <CheckCircle2 size={56} className="ok" />
-              <h3>You're verified</h3>
+              <h2 className="h3">You're verified</h2>
               <p className="muted small">An ID-verified badge appears on your profile, and you can accept paid bookings.</p>
               <Link to="/me" className="btn block mt">Back to profile</Link>
             </div>
           ) : (
             <div className="center-col">
               <ShieldCheck size={48} className="accent-text" />
-              <h3>Identity verification is coming soon</h3>
+              <h2 className="h3">Identity verification is coming soon</h2>
               <p className="muted small">
                 {myProvider
                   ? 'Vendors need to verify their identity before accepting paid bookings. You’ll scan a government ID and take a quick selfie. This is free and separate from Verified Pro.'

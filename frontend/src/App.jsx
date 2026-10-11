@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import TabBar from './components/TabBar.jsx'
 import Toast from './components/Toast.jsx'
@@ -31,10 +32,49 @@ import ServiceHome from './screens/ServiceHome.jsx'
 import Occasion from './screens/Occasion.jsx'
 import Events, { NewEvent } from './screens/Events.jsx'
 import EventDetail from './screens/EventDetail.jsx'
+import NotFound from './screens/NotFound.jsx'
 import { useAuth } from './auth.jsx'
+import { APP_NAME } from './components/useDocumentTitle.js'
 
 const TAB_ROUTES = ['/', '/discover', '/bookings', '/inbox', '/me']
 const AUTH_ROUTES = ['/sign-in', '/auth/callback', '/welcome', '/reset-password']
+
+// Default page titles; screens with a more specific name (TopBar title, a vendor's name) override them.
+const ROUTE_TITLES = [
+  [/^\/$/, 'Home'], [/^\/discover/, 'Discover'], [/^\/search/, 'Search'], [/^\/u\//, 'Vendor'], [/^\/(gallery|post)\//, 'Posts'],
+  [/^\/book\//, 'Request booking'], [/^\/bookings\/[^/]+\/delivery/, 'Delivery'], [/^\/bookings\/[^/]+\/review/, 'Review'],
+  [/^\/bookings\/./, 'Booking'], [/^\/bookings/, 'Bookings'], [/^\/inbox\/new/, 'New message'], [/^\/inbox\/./, 'Chat'],
+  [/^\/inbox/, 'Messages'], [/^\/me/, 'Profile'], [/^\/upload/, 'Post'], [/^\/verify/, 'Verification'], [/^\/settings/, 'Settings'],
+  [/^\/ai-review/, 'Post in review'], [/^\/sign-in/, 'Sign in'], [/^\/auth/, 'Signing in'], [/^\/welcome/, 'Welcome'],
+  [/^\/reset-password/, 'New password'], [/^\/my-work/, 'My work'], [/^\/plan/, 'Plan with AI'], [/^\/new-listing/, 'New listing'],
+  [/^\/services\//, 'Services'], [/^\/occasions\//, 'Occasions'], [/^\/events\/new/, 'New event'], [/^\/events\/./, 'Event'], [/^\/events/, 'Events'],
+]
+
+function RouteAnnouncer({ pathname }) {
+  const shown = useRef(pathname) // the screen focus was last placed on (StrictMode runs effects twice)
+  // Runs before the screen's own effects (it renders first), so a screen's specific title wins.
+  useEffect(() => {
+    const t = ROUTE_TITLES.find(([re]) => re.test(pathname))?.[1]
+    document.title = t ? `${t} · ${APP_NAME}` : APP_NAME
+  }, [pathname])
+  // On navigation (not the first load), move focus to the new screen so keyboard and screen-reader
+  // users start at its top instead of on a control that no longer exists.
+  useEffect(() => {
+    if (shown.current === pathname) return undefined
+    shown.current = pathname
+    const raf = requestAnimationFrame(() => {
+      const main = document.getElementById('main')
+      if (main && !main.contains(document.activeElement)) main.focus({ preventScroll: true })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [pathname])
+  return null
+}
+
+const skipToMain = (e) => {
+  e.preventDefault()
+  document.getElementById('main')?.focus()
+}
 
 export default function App() {
   const { pathname, search } = useLocation()
@@ -47,7 +87,9 @@ export default function App() {
   return (
     <div className="stage">
       <div className="phone" id="phone">
-        <div className={`viewport ${showTabs ? 'with-tabs' : ''}`} key={pathname}>
+        <a href="#main" className="skip-link" onClick={skipToMain}>Skip to main content</a>
+        <RouteAnnouncer pathname={pathname} />
+        <main id="main" tabIndex={-1} className={`viewport ${showTabs ? 'with-tabs' : ''}`} key={pathname}>
           {welcomeRedirect && <Navigate to={`/welcome?next=${encodeURIComponent(pathname + search)}`} replace />}
           <Routes>
             <Route path="/" element={<Home />} />
@@ -81,8 +123,9 @@ export default function App() {
             <Route path="/events" element={<Events />} />
             <Route path="/events/new" element={<NewEvent />} />
             <Route path="/events/:id" element={<EventDetail />} />
+            <Route path="*" element={<NotFound />} />
           </Routes>
-        </div>
+        </main>
         {showTabs && <TabBar />}
         <Toast />
       </div>

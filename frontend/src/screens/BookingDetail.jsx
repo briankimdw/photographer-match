@@ -52,7 +52,7 @@ function Detail({ b, reload }) {
   const { toast, myProvider } = useStore()
   const isClient = b.role === 'client'
   const other = isClient ? b.provider : { ...b.client, idVerified: false, pro: false }
-  const first = (other.name || (isClient ? `The ${nounFor(b.vertical)}` : 'The client')).split(' ')[0]
+  const first = other.shortName || (other.name || (isClient ? `The ${nounFor(b.vertical)}` : 'The client')).split(' ')[0]
   const [sheet, setSheet] = useState(null) // cancel | counter
   const [busy, setBusy] = useState(false)
   const [counterTotal, setCounterTotal] = useState('')
@@ -109,10 +109,10 @@ function Detail({ b, reload }) {
           <ProviderCallout b={b} first={first} busy={busy} act={act} verified={!!myProvider?.identity_verified} shootDayReached={shootDayReached} openCounter={() => setSheet('counter')} />
         )}
 
-        <h4 className="section-title">Status</h4>
+        <h2 className="section-title h4">Status</h2>
         <StatusTimeline booking={b} />
 
-        <h4 className="section-title">Price</h4>
+        <h2 className="section-title h4">Price</h2>
         <div className="summary">
           {b.total == null && b.subtotal == null ? (
             <div className="muted small">{b.offer ? `Offer on the table: ${money(b.offer.total)}` : 'Waiting for a custom quote.'}</div>

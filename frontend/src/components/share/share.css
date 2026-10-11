@@ -8,7 +8,7 @@
 .sh-item b { display: block; font-size: 14px; }
 .sh-search { margin: 0; }
 .sh-empty, .sh-signin { padding: 12px 2px; }
-.sh-signin a { color: var(--accent); font-weight: 600; }
+.sh-signin a { color: var(--accent-ink); font-weight: 600; }
 
 .sh-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 6px; padding: 4px 0 6px; }
 .sh-target { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; padding: 2px; border-radius: 12px; }
@@ -61,10 +61,10 @@ a.share-card:active { transform: scale(.98); }
 .share-card.event { background: linear-gradient(180deg, var(--accent-soft), var(--bg) 70%); }
 .share-card .sc-event-cover { display: block; width: 100%; height: 110px; object-fit: cover; }
 .share-card .sc-event-top { display: flex; gap: 10px; align-items: center; padding: 12px 12px 4px; min-width: 0; }
-.share-card .sc-cal { width: 46px; height: 50px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent); }
+.share-card .sc-cal { width: 46px; height: 50px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; flex-shrink: 0; color: var(--accent-ink); }
 .share-card .sc-cal span { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; }
 .share-card .sc-cal b { font-size: 20px; line-height: 1; color: var(--ink); }
-.share-card .sc-kicker { color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
+.share-card .sc-kicker { color: var(--accent-ink); font-weight: 700; text-transform: uppercase; letter-spacing: .05em; font-size: 10px; }
 .share-card .sc-event-title { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: normal; font-size: 15px; line-height: 1.25; }
 .share-card .sc-event-lines { display: flex; flex-direction: column; gap: 3px; padding: 4px 12px 0; color: var(--muted); }
 .share-card .sc-event-lines > div { display: flex; align-items: center; gap: 5px; min-width: 0; }

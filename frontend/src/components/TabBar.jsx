@@ -22,14 +22,15 @@ export default function TabBar() {
   useEffect(() => (user ? subscribeToInbox(reload) : undefined), [user?.id, reload])
 
   return (
-    <nav className="tabbar">
+    <nav className="tabbar" aria-label="Main">
       {tabs.map(({ to, label, Icon }) => (
         <NavLink key={to} to={to} end className={({ isActive }) => `tab ${isActive ? 'active' : ''}`}>
           <span className="tab-icon">
-            <Icon size={22} />
-            {to === '/inbox' && unread > 0 && <span className="tab-badge" aria-label={`${unread} unread`}>{unread > 9 ? '9+' : unread}</span>}
+            <Icon size={22} aria-hidden="true" />
+            {to === '/inbox' && unread > 0 && <span className="tab-badge" aria-hidden="true">{unread > 9 ? '9+' : unread}</span>}
           </span>
           <span>{label}</span>
+          {to === '/inbox' && unread > 0 && <span className="sr-only">, {unread} unread</span>}
         </NavLink>
       ))}
     </nav>

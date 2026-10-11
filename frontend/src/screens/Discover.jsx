@@ -1,4 +1,5 @@
 import { useSearchParams } from 'react-router-dom'
+import { onTablistKeyDown } from '../components/tabs.js'
 import SwipeDeck from '../components/discover/SwipeDeck.jsx'
 import Explore from '../components/discover/Explore.jsx'
 import '../components/discover/discover.css'
@@ -16,19 +17,26 @@ export default function Discover() {
     if (next === 'explore') p.set('mode', 'explore')
     setParams(p, { replace: true })
     document.querySelector('.viewport')?.scrollTo({ top: 0 })
+    // The other mode renders its own header: keep keyboard focus on the tab the user picked.
+    if (document.activeElement?.closest?.('.dc-tabs')) {
+      requestAnimationFrame(() => document.querySelector('.dc-tabs [aria-selected="true"]')?.focus())
+    }
   }
 
   const tabs = (
-    <div className="dc-tabs" role="tablist" aria-label="Discover">
+    <>
+    <h1 className="sr-only">Discover</h1>
+    <div className="dc-tabs" role="tablist" aria-label="Discover" onKeyDown={onTablistKeyDown}>
       {[
         { value: 'foryou', label: 'For you' },
         { value: 'explore', label: 'Explore' },
       ].map((t) => (
-        <button key={t.value} role="tab" aria-selected={mode === t.value} className={mode === t.value ? 'on' : ''} onClick={() => setMode(t.value)}>
+        <button key={t.value} role="tab" aria-selected={mode === t.value} tabIndex={mode === t.value ? 0 : -1} className={mode === t.value ? 'on' : ''} onClick={() => setMode(t.value)}>
           {t.label}
         </button>
       ))}
     </div>
+    </>
   )
 
   return mode === 'explore' ? <Explore tabs={tabs} /> : <SwipeDeck tabs={tabs} initialVertical={params.get('v') || undefined} />

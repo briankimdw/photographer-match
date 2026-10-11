@@ -28,7 +28,7 @@ function ReviewView({ b, reload }) {
   const { toast } = useStore()
   const isClient = b.role === 'client'
   const other = isClient ? b.provider : b.client
-  const first = (other.name || '').split(' ')[0] || (isClient ? 'your vendor' : 'your client')
+  const first = other.shortName || (other.name || '').split(' ')[0] || (isClient ? 'your vendor' : 'your client')
   const [rating, setRating] = useState(0)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -59,12 +59,12 @@ function ReviewView({ b, reload }) {
         <TopBar title="Reviews" />
         <div className="pad center-col">
           {header}
-          <h3>Your review of {first}</h3>
+          <h2 className="h3">Your review of {first}</h2>
           <Stars value={b.myReview.rating} size={24} />
           {b.myReview.body && <p className="small">“{b.myReview.body}”</p>}
           {b.theirReview ? (
             <div className="review-reveal mt">
-              <h4 className="section-title">{first}'s review of you</h4>
+              <h3 className="section-title h4">{first}'s review of you</h3>
               <Stars value={b.theirReview.rating} size={20} />
               {b.theirReview.body && <p className="small">“{b.theirReview.body}”</p>}
             </div>
@@ -99,12 +99,14 @@ function ReviewView({ b, reload }) {
       <TopBar title="Leave a review" />
       <div className="pad center-col">
         <PersonAvatar id={other.id} src={other.avatar} name={other.name} username={other.username} className="avatar xl" />
-        <h3>{isClient ? `How was your ${sessionNoun(b.vertical)} with ${first}?` : `How was working with ${first}?`}</h3>
+        <h2 className="h3" id="review-q">{isClient ? `How was your ${sessionNoun(b.vertical)} with ${first}?` : `How was working with ${first}?`}</h2>
         <div className="muted small">{b.packageName} · {b.date}</div>
         <div className="mt">
-          <Stars value={rating} size={36} onChange={setRating} />
+          <Stars value={rating} size={36} onChange={setRating} label={`Your rating for ${first}, out of 5`} />
         </div>
+        <label htmlFor="review-text" className="sr-only">Your review</label>
         <textarea
+          id="review-text"
           className="input mt"
           rows={5}
           placeholder={isClient ? 'Share details about your experience' : 'How was this client to work with?'}
@@ -112,7 +114,7 @@ function ReviewView({ b, reload }) {
           onChange={(e) => setText(e.target.value)}
         />
         <div className="note mt">
-          <EyeOff size={16} />
+          <EyeOff size={16} aria-hidden="true" />
           Reviews are double-blind. Neither of you sees the other's review until you've both posted, or 14 days pass.
         </div>
         <button className="btn accent block mt-lg" disabled={!rating || busy} onClick={submit}>{busy ? 'Posting…' : 'Submit review'}</button>

@@ -19,7 +19,7 @@ export function MemberStack({ members = [], max = 4, size = '' }) {
   const shown = members.slice(0, max)
   const more = members.length - shown.length
   return (
-    <span className={`ev-stack ${size}`} aria-label={`${members.length} planning`}>
+    <span className={`ev-stack ${size}`} role="img" aria-label={`${members.length} planning`}>
       {shown.map((m) => <img key={m.profileId} src={m.avatar} alt="" title={m.name} />)}
       {more > 0 && <span className="ev-more">+{more}</span>}
     </span>

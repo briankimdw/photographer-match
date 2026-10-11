@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { GROUPS, VERTICALS, verticalMeta, verticalsInGroup } from '../../verticals/index.js'
 import VerticalIcon from './VerticalIcon.jsx'
+import { onTablistKeyDown } from '../tabs.js'
 
 // Airbnb-style row of verticals (icon over label), "All" first.
 //   value: vertical slug or null (All); onChange(slug|null)
@@ -19,8 +20,8 @@ export default function VerticalSwitcher({ value, onChange, counts }) {
   }, [value])
 
   return (
-    <div className="v-switch scroll-x" ref={ref} role="tablist" aria-label="Service type">
-      <button role="tab" aria-selected={!value} className={`v-switch-item ${!value ? 'on' : ''}`} onClick={() => onChange(null)}>
+    <div className="v-switch scroll-x" ref={ref} role="tablist" aria-label="Service type" onKeyDown={onTablistKeyDown}>
+      <button role="tab" aria-selected={!value} tabIndex={!value ? 0 : -1} className={`v-switch-item ${!value ? 'on' : ''}`} onClick={() => onChange(null)}>
         <VerticalIcon name="LayoutGrid" size={22} />
         <span>All</span>
       </button>
@@ -29,6 +30,7 @@ export default function VerticalSwitcher({ value, onChange, counts }) {
           key={v.slug}
           role="tab"
           aria-selected={value === v.slug}
+          tabIndex={value === v.slug ? 0 : -1}
           className={`v-switch-item ${value === v.slug ? 'on' : ''} ${has(v.slug) ? '' : 'empty'}`}
           style={{ '--tint': v.tint }}
           onClick={() => onChange(v.slug)}

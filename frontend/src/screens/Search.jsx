@@ -1,5 +1,6 @@
 import { Fragment, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { onTablistKeyDown } from '../components/tabs.js'
 import {
   ArrowUpDown, CalendarCheck, CalendarDays, Check, List, LocateFixed, Map as MapIcon, MapPin, MapPinOff, Plus, Search as SearchIcon, SearchX,
   SlidersHorizontal, Star, X,
@@ -319,12 +320,12 @@ export default function Search() {
                   : countLabel(results.length, vertical)}
               {view === 'map' && !area && results.length > onMap.length && onMap.length > 0 && ` · ${results.length - onMap.length} not on map`}
             </div>
-            <div className="view-toggle" role="tablist" aria-label="View">
-              <button role="tab" aria-selected={view === 'list'} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>
-                <List size={14} /> List
+            <div className="view-toggle" role="tablist" aria-label="View" onKeyDown={onTablistKeyDown}>
+              <button role="tab" aria-selected={view === 'list'} tabIndex={view === 'list' ? 0 : -1} className={view === 'list' ? 'active' : ''} onClick={() => setView('list')}>
+                <List size={14} aria-hidden="true" /> List
               </button>
-              <button role="tab" aria-selected={view === 'map'} className={view === 'map' ? 'active' : ''} onClick={() => setView('map')}>
-                <MapIcon size={14} /> Map
+              <button role="tab" aria-selected={view === 'map'} tabIndex={view === 'map' ? 0 : -1} className={view === 'map' ? 'active' : ''} onClick={() => setView('map')}>
+                <MapIcon size={14} aria-hidden="true" /> Map
               </button>
             </div>
           </div>

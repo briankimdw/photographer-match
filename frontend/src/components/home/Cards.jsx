@@ -16,12 +16,12 @@ export function SectionHead({ title, sub, to, cta = 'See all' }) {
   return (
     <div className="section-head">
       <div className="grow">
-        <h3>{title}</h3>
+        <h2>{title}</h2>
         {sub && <div className="muted tiny">{sub}</div>}
       </div>
       {to && (
         <Link to={to} className="small muted inline-icon see-all" aria-label={`${cta}: ${title}`}>
-          {cta} <ChevronRight size={14} />
+          {cta} <ChevronRight size={14} aria-hidden="true" />
         </Link>
       )}
     </div>

@@ -21,7 +21,7 @@ const attentionFor = (b) => {
   if (b.status === 'delivered') {
     return deliversMedia(b.vertical)
       ? { title: b.vertical === 'videography' ? 'Your video is ready' : 'Your photos are ready', cta: 'Review delivery', to: `/bookings/${b.id}/delivery` }
-      : { title: `${firstName(b.provider.name) || 'Your vendor'} marked this done`, cta: 'Confirm' }
+      : { title: `${(b.provider.shortName || firstName(b.provider.name)) || 'Your vendor'} marked this done`, cta: 'Confirm' }
   }
   if (b.status === 'completed' && b.reviewWindowOpen && !b.myReview) return { title: 'How did it go?', cta: 'Leave a review', to: `/bookings/${b.id}/review` }
   return null
@@ -84,7 +84,7 @@ export default function Bookings() {
   return (
     <div className="bookings">
       <header className="home-header">
-        <div className="title-lg">Bookings</div>
+        <h1 className="title-lg">Bookings</h1>
         {user && data && <span className="muted small">{bookings.filter((b) => b.isActive || b.status === 'delivered').length} active</span>}
       </header>
 
@@ -147,7 +147,7 @@ export default function Bookings() {
         <>
           {attention.length > 0 && (
             <section className="pad-x">
-              <h4 className="section-title">Needs your attention</h4>
+              <h2 className="section-title h4">Needs your attention</h2>
               {attention.map((b) => {
                 const a = attentionFor(b)
                 return (
@@ -156,7 +156,7 @@ export default function Bookings() {
                     <div className="grow">
                       <b className="small">{a.title}</b>
                       <div className="muted tiny">
-                        {b.packageName} with <ProfileLink id={b.provider.id}>{firstName(b.provider.name)}</ProfileLink> · {b.date}
+                        {b.packageName} with <ProfileLink id={b.provider.id}>{(b.provider.shortName || firstName(b.provider.name))}</ProfileLink> · {b.date}
                       </div>
                     </div>
                     <span className="att-cta">{a.cta}</span>
@@ -167,7 +167,7 @@ export default function Bookings() {
           )}
 
           <section className="pad-x">
-            <h4 className="section-title">Upcoming</h4>
+            <h2 className="section-title h4">Upcoming</h2>
             {upcoming.length === 0 && (
               <EmptyState
                 compact
@@ -199,7 +199,7 @@ export default function Bookings() {
               </>
             ) : (
               <>
-                <h4 className="section-title">Past</h4>
+                <h2 className="section-title h4">Past</h2>
                 <EmptyState compact icon={History} text="Finished, declined and cancelled bookings will show here." />
               </>
             )}

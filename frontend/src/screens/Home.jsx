@@ -68,10 +68,10 @@ export default function Home() {
       <header className="home-header">
         <div>
           <div className="hd-greet">{firstName ? `${greeting()}, ${firstName}` : greeting()}</div>
-          <div className="hd-title">What are you planning?</div>
+          <h1 className="hd-title">What are you planning?</h1>
         </div>
         <Link to="/upload" className="post-btn" aria-label="Post your work">
-          <Plus size={18} /> Post
+          <Plus size={18} aria-hidden="true" /> Post
         </Link>
       </header>
 

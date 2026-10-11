@@ -2,3 +2,7 @@
 .env.*
 !.env.example
 .idea/*
+
+# e2e test output (frontend/scripts/e2e)
+frontend/scripts/e2e/last-report.json
+frontend/scripts/e2e/last-cleanup.sql

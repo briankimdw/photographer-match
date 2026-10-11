@@ -468,12 +468,12 @@ export function openChat(conversationId, { onMessage, onRead, onTyping } = {}) {
     .subscribe()
 
   // Typing indicator: a broadcast between the people who have the chat open (nothing is stored).
-  const live = supabase
-    .channel(`typing:${conversationId}`, { config: { broadcast: { self: false } } })
-    .on('broadcast', { event: 'typing' }, ({ payload }) => {
-      if (payload?.profileId && payload.profileId !== uid) onTyping?.(payload.profileId)
-    })
-    .subscribe()
+  // The topic must be the same for everyone, so the channel is shared (see typingChannel).
+  const onBroadcast = (payload) => {
+    if (payload?.profileId && payload.profileId !== uid) onTyping?.(payload.profileId)
+  }
+  const live = typingChannel(conversationId)
+  live.handlers.add(onBroadcast)
 
   let lastTyping = 0
   return {
@@ -481,13 +481,50 @@ export function openChat(conversationId, { onMessage, onRead, onTyping } = {}) {
       const now = Date.now()
       if (now - lastTyping < 2500 || !me) return
       lastTyping = now
-      live.send({ type: 'broadcast', event: 'typing', payload: { profileId: me.id } }).catch(() => {})
+      live.channel.send({ type: 'broadcast', event: 'typing', payload: { profileId: me.id } }).catch(() => {})
     },
     close() {
       supabase.removeChannel(db)
-      supabase.removeChannel(live)
+      live.handlers.delete(onBroadcast)
+      releaseTypingChannel(conversationId)
     },
   }
+}
+
+// One "typing:<id>" channel per conversation, shared by everyone who opens it here.
+// supabase.channel() hands back an existing channel with the same topic, and removing
+// one only finishes after the server acknowledges, so closing a chat and opening it
+// again right away (React StrictMode does exactly that) used to get a channel that was
+// being torn down: typing stopped working. Channels are released a moment after the
+// last user closes them instead.
+const typingChannels = new Map() // conversationId -> { channel, handlers, refs, timer }
+function typingChannel(conversationId) {
+  let entry = typingChannels.get(conversationId)
+  if (entry) {
+    clearTimeout(entry.timer)
+    entry.refs++
+    return entry
+  }
+  const handlers = new Set()
+  const channel = supabase
+    .channel(`typing:${conversationId}`, { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'typing' }, ({ payload }) => handlers.forEach((h) => h(payload)))
+    .subscribe()
+  entry = { channel, handlers, refs: 1, timer: null }
+  typingChannels.set(conversationId, entry)
+  return entry
+}
+function releaseTypingChannel(conversationId) {
+  const entry = typingChannels.get(conversationId)
+  if (!entry) return
+  entry.refs = Math.max(0, entry.refs - 1)
+  if (entry.refs) return
+  clearTimeout(entry.timer)
+  entry.timer = setTimeout(() => {
+    if (entry.refs || typingChannels.get(conversationId) !== entry) return
+    typingChannels.delete(conversationId)
+    supabase.removeChannel(entry.channel)
+  }, 2000)
 }
 
 // Back-compat: new messages in one conversation. Returns an unsubscribe function.

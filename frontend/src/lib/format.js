@@ -35,6 +35,16 @@ export const publicUrl = (bucket, path) => supabase.storage.from(bucket).getPubl
 export const photoUrl = (path) => (!path ? null : /^https?:/.test(path) ? path : publicUrl('portfolio', path))
 
 // Avatar for a profile: an uploaded file, an external URL, or a generated initials badge.
+// How to address a vendor in a sentence ("Book Maya", "Message The Glasshouse DTLA"):
+// the first name when the listing is under the owner's own name, else the whole
+// business name (first words like "The" or "DJ" make no sense on their own).
+export const callName = (name = '', ownerName = '') => {
+  const n = (name || '').trim()
+  if (!n) return ''
+  const owner = (ownerName || '').trim().toLowerCase()
+  return owner && n.toLowerCase() === owner ? n.split(/\s+/)[0] : n
+}
+
 export const avatarUrl = (path, name = '') => {
   if (path) return /^https?:/.test(path) ? path : publicUrl('avatars', path)
   // Initials from words that start with a letter or digit ("Petal & Stem" -> "PS"), so

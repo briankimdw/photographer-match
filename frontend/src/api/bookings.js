@@ -2,7 +2,7 @@
 // Reading uses Row-Level Security (you only ever get your own bookings);
 // every change goes through the booking functions in the database.
 import { supabase } from '../lib/supabase.js'
-import { ACTIVE_STATUSES, PAID_STATUSES, avatarUrl, dollars, policyFromRules, toPackage } from '../lib/format.js'
+import { ACTIVE_STATUSES, PAID_STATUSES, avatarUrl, callName, dollars, policyFromRules, toPackage } from '../lib/format.js'
 import { fmtBooking, fmtTime, toKey } from '../lib/dates.js'
 import { invalidate } from './catalog.js'
 
@@ -17,7 +17,7 @@ export const BOOKING_COLUMNS = `
   *,
   provider:providers!bookings_provider_id_fkey(id, slug, display_name, profile_id, identity_verified, is_pro, rating_avg, rating_count,
     vertical:service_categories!providers_vertical_id_fkey(slug),
-    profile:profiles!providers_profile_id_fkey(username, avatar_path)),
+    profile:profiles!providers_profile_id_fkey(username, display_name, avatar_path)),
   client:profiles!bookings_client_id_fkey(id, username, display_name, avatar_path, client_rating_avg, client_rating_count),
   addons:booking_addons(name, price_cents),
   history:booking_events(to_status, created_at),
@@ -68,6 +68,7 @@ export function toBooking(row, viewerId) {
       vertical: pr.vertical?.slug || 'photography',
       profileId: pr.profile_id,
       name: pr.display_name,
+      shortName: callName(pr.display_name, pr.profile?.display_name), // "Maya" or "The Glasshouse DTLA"
       username: pr.profile?.username ?? pr.slug,
       avatar: avatarUrl(pr.profile?.avatar_path, pr.display_name),
       idVerified: !!pr.identity_verified,
@@ -79,6 +80,7 @@ export function toBooking(row, viewerId) {
     client: {
       id: cl.id,
       name: cl.display_name || cl.username,
+      shortName: (cl.display_name || cl.username || '').split(' ')[0],
       username: cl.username,
       avatar: avatarUrl(cl.avatar_path, cl.display_name || cl.username),
       rating: cl.client_rating_avg == null ? null : Number(cl.client_rating_avg),

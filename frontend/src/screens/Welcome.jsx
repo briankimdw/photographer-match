@@ -65,13 +65,15 @@ export default function Welcome() {
           <div className="input-prefix">
             <span>@</span>
             <input value={username} maxLength={30} autoCapitalize="none" autoCorrect="off"
+              aria-invalid={username && !usernameOk ? true : undefined}
+              aria-describedby={[username && !usernameOk && 'welcome-username-hint', error && 'welcome-error'].filter(Boolean).join(' ') || undefined}
               onChange={(e) => setUsername(e.target.value.toLowerCase())} />
           </div>
           {username && !usernameOk && (
-            <small className="field-hint">3–30 characters: lowercase letters, numbers, dots and underscores.</small>
+            <small className="field-hint" id="welcome-username-hint">3–30 characters: lowercase letters, numbers, dots and underscores.</small>
           )}
         </label>
-        {error && <div className="form-error mt-sm" role="alert">{error}</div>}
+        {error && <div className="form-error mt-sm" role="alert" id="welcome-error">{error}</div>}
         <button className="btn block mt" disabled={busy || !name.trim() || !usernameOk}>
           {busy ? 'Saving…' : 'Continue'}
         </button>

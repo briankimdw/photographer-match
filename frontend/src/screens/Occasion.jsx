@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowUp, Check, ChevronLeft, ChevronRight, Search as SearchIcon, Sparkles, Users } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
+import useDocumentTitle from '../components/useDocumentTitle.js'
 import { EmptyState, ErrorState } from '../components/States.jsx'
 import { RatingInline, RowsSkeleton, SectionHead } from '../components/home/Cards.jsx'
 import { TintIcon } from '../components/home/CatalogIcon.jsx'
@@ -31,6 +32,7 @@ const EXAMPLES = {
 export default function Occasion() {
   const { slug } = useParams()
   const occasion = getOccasion(slug)
+  useDocumentTitle(occasion ? `Plan ${occasion.name.toLowerCase()}` : null)
   if (!occasion) {
     return (
       <>

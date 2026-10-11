@@ -31,7 +31,7 @@ function DeliveryView({ b, reload }) {
   const [busy, setBusy] = useState(false)
   const isClient = b.role === 'client'
   const other = isClient ? b.provider : b.client
-  const first = (other.name || '').split(' ')[0] || (isClient ? 'Your vendor' : 'The client')
+  const first = other.shortName || (other.name || '').split(' ')[0] || (isClient ? 'Your vendor' : 'The client')
   const days = b.deliveryExpiresDays
 
   const accept = async () => {

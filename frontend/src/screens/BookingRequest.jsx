@@ -48,7 +48,7 @@ function RequestForm({ p }) {
   const { pathname, search } = useLocation()
   const { toast } = useStore()
   const { user } = useAuth()
-  const first = p.name.split(' ')[0]
+  const first = p.shortName || p.name.split(' ')[0]
   const isMine = !!user && user.id === p.profileId
 
   const initialPkg = p.packages.some((x) => x.id === params.get('pkg')) ? params.get('pkg') : p.packages[0].id
@@ -132,7 +132,7 @@ function RequestForm({ p }) {
       <TopBar title="Request booking" />
       <PersonRow person={p} sub={[p.rating != null ? `${p.rating.toFixed(1)} ★` : 'New', p.serviceArea].join(' · ')} />
       <div className="pad">
-        <h4 className="section-title">Package</h4>
+        <h2 className="section-title h4">Package</h2>
         {p.packages.map((x) => (
           <label key={x.id} className={`option ${pkgId === x.id ? 'on' : ''}`}>
             <input type="radio" checked={pkgId === x.id} onChange={() => { setPkgId(x.id); setHours(null); setQuantity(null) }} />
@@ -161,7 +161,7 @@ function RequestForm({ p }) {
           <QuantityStepper qty={qty} value={count} onChange={setQuantity} priceText={priceLabel(pkg)} />
         )}
 
-        <h4 className="section-title">{dates.length > 1 ? `Dates (${dates.length})` : 'Date'}</h4>
+        <h2 className="section-title h4">{dates.length > 1 ? `Dates (${dates.length})` : 'Date'}</h2>
         {requestedDates.length > 0 && (
           <>
             <div className="muted tiny">Your dates{free ? ` · ${first} is free on ${requestedDates.filter((k) => free.has(k)).length} of ${requestedDates.length}` : ''}</div>
@@ -204,7 +204,7 @@ function RequestForm({ p }) {
           ))}
         </div>
 
-        <h4 className="section-title">Location</h4>
+        <h2 className="section-title h4">Location</h2>
         <input className="input" placeholder="Venue or address" value={loc} onChange={(e) => setLoc(e.target.value)} />
         <div className="muted tiny mt-xs inline-icon">
           <MapPin size={12} /> {p.serviceArea}. {p.travelFee}.
@@ -212,7 +212,7 @@ function RequestForm({ p }) {
 
         {p.addons.length > 0 && (
           <>
-            <h4 className="section-title">Add-ons</h4>
+            <h2 className="section-title h4">Add-ons</h2>
             {p.addons.map((a) => (
               <label key={a.id} className="check-row">
                 <input
@@ -227,10 +227,10 @@ function RequestForm({ p }) {
           </>
         )}
 
-        <h4 className="section-title">Notes for {first}</h4>
+        <h2 className="section-title h4">Notes for {first}</h2>
         <textarea className="input" rows={3} placeholder={`Tell them about your ${sessionNoun(p.vertical)}…`} value={note} onChange={(e) => setNote(e.target.value)} />
 
-        <h4 className="section-title">Price</h4>
+        <h2 className="section-title h4">Price</h2>
         {isQuote ? (
           <div className="note">
             <Info size={16} /> This package is quote-based. {first} will reply with a custom price.

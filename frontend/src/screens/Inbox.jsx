@@ -32,10 +32,10 @@ export default function Inbox() {
   return (
     <div>
       <header className="home-header">
-        <div className="title-lg">Messages</div>
+        <h1 className="title-lg">Messages</h1>
         {user && (
           <Link to="/inbox/new" className="inbox-compose" aria-label="New message">
-            <PenSquare size={18} />
+            <PenSquare size={18} aria-hidden="true" />
           </Link>
         )}
       </header>

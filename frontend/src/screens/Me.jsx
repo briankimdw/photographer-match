@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
+import { onTablistKeyDown } from '../components/tabs.js'
 import {
   Bookmark, Briefcase, Check, ChevronRight, CreditCard, Heart, Images, Info, Layers, MapPin, Package, Pencil, Plus, PlusSquare,
   Settings, ShieldCheck, Sparkles, Star, Store,
@@ -48,11 +49,11 @@ export default function Me() {
   return (
     <div className="me">
       <header className="home-header">
-        <div className="title-lg">Profile</div>
+        <h1 className="title-lg">Profile</h1>
         {user && (
           <div className="row">
             <Link to="/upload" className="icon-btn" aria-label="Post photos">
-              <PlusSquare size={22} />
+              <PlusSquare size={22} aria-hidden="true" />
             </Link>
             <Link to="/settings" className="icon-btn" aria-label="Settings">
               <Settings size={22} />
@@ -91,7 +92,7 @@ function SignedOut() {
             {art.map((src) => <img key={src} src={src} alt="" />)}
           </div>
         )}
-        <h3>Your bookings, favorites and messages, in one place</h3>
+        <h2 className="h3">Your bookings, favorites and messages, in one place</h2>
         <p className="muted small">Sign in to request bookings, message vendors and keep your shortlist across devices.</p>
         <Link to="/sign-in?next=/me" className="btn accent block mt">Sign in or create an account</Link>
       </div>
@@ -192,22 +193,22 @@ function RoleSwitch({ myBookings, providerBookings }) {
 
   return (
     <div className="role-switch-wrap">
-      <div className="role-switch" role="tablist">
-        <span className="role-thumb" style={{ transform: isProvider ? 'translateX(100%)' : 'none' }} />
-        <button role="tab" aria-selected={!isProvider} className={`role ${!isProvider ? 'on' : ''}`} onClick={() => setMode('client')}>
+      <div className="role-switch" role="tablist" aria-label="Profile mode" onKeyDown={onTablistKeyDown}>
+        <span className="role-thumb" aria-hidden="true" style={{ transform: isProvider ? 'translateX(100%)' : 'none' }} />
+        <button role="tab" aria-selected={!isProvider} tabIndex={!isProvider ? 0 : -1} className={`role ${!isProvider ? 'on' : ''}`} onClick={() => setMode('client')}>
           <Briefcase size={18} />
           <div>
             <b>Hiring</b>
             <small>{myBookings ? `${activeBookings} active booking${activeBookings === 1 ? '' : 's'}` : 'Your bookings'}</small>
           </div>
         </button>
-        <button role="tab" aria-selected={isProvider} className={`role ${isProvider ? 'on' : ''}`} onClick={() => setMode('provider')}>
+        <button role="tab" aria-selected={isProvider} tabIndex={isProvider ? 0 : -1} className={`role ${isProvider ? 'on' : ''}`} onClick={() => setMode('provider')}>
           {myProvider ? <VerticalIcon vertical={myProvider.vertical} size={18} /> : <Store size={18} />}
           <div>
             <b>{myProviders.length > 1 ? 'My business' : myProvider ? nounTitle(myProvider.vertical) : 'Vendor'}</b>
             <small>{!myProvider ? 'Start taking bookings' : pending ? `${pending} new request${pending === 1 ? '' : 's'}` : 'Your business'}</small>
           </div>
-          {pending > 0 && !isProvider && <span className="role-dot">{pending}</span>}
+          {pending > 0 && !isProvider && <span className="role-dot" aria-hidden="true">{pending}</span>}
         </button>
       </div>
     </div>
@@ -256,7 +257,7 @@ function ClientView({ bookings }) {
       {bookings.error && <div className="pad-x"><ErrorState error={bookings.error} onRetry={bookings.reload} /></div>}
       {next && (
         <>
-          <h4 className="section-title pad-x">Next up</h4>
+          <h2 className="section-title h4 pad-x">Next up</h2>
           <div className="pad-x">
             <NextBooking b={next} />
           </div>
@@ -265,7 +266,7 @@ function ClientView({ bookings }) {
 
       <EventsShelf showEmpty title="Events" />
 
-      <h4 className="section-title pad-x">Shortlisted</h4>
+      <h2 className="section-title h4 pad-x">Shortlisted</h2>
       {shortlisted.length ? (
         <PeopleRow people={shortlisted} />
       ) : (
@@ -281,7 +282,7 @@ function ClientView({ bookings }) {
         </div>
       )}
 
-      <h4 className="section-title pad-x">Following</h4>
+      <h2 className="section-title h4 pad-x">Following</h2>
       {followed.length ? (
         <PeopleRow people={followed} />
       ) : (
@@ -297,12 +298,12 @@ function ClientView({ bookings }) {
         </div>
       )}
 
-      <h4 className="section-title pad-x">Your taste</h4>
+      <h2 className="section-title h4 pad-x">Your taste</h2>
       <div className="pad-x">
         <TasteCard taste={taste} />
       </div>
 
-      <h4 className="section-title pad-x">Saved collections</h4>
+      <h2 className="section-title h4 pad-x">Saved collections</h2>
       {collections.loading ? (
         <Loading inline />
       ) : collections.error ? (

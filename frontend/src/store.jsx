@@ -122,12 +122,12 @@ export function StoreProvider({ children }) {
     return optimistic(setFollowing, providerId, on, () => {
       invalidate('providers') // follower counts
       return on ? social.follow(providerId) : social.unfollow(providerId)
-    }, 'follow photographers')
+    }, 'follow vendors')
   }
 
   const toggleShortlist = (providerId) => {
     const on = !shortlist.has(providerId)
-    return optimistic(setShortlist, providerId, on, () => (on ? social.addToShortlist(providerId) : social.removeFromShortlist(providerId)), 'save photographers')
+    return optimistic(setShortlist, providerId, on, () => (on ? social.addToShortlist(providerId) : social.removeFromShortlist(providerId)), 'save vendors')
   }
 
   // photo: { id (photo id), albumId, providerId }. Liking is a taste signal; un-liking just clears the heart.

@@ -28,7 +28,7 @@ export default function AuthCallback() {
   if (urlError || timedOut) {
     return (
       <div className="pad center-col auth-status">
-        <h3>That sign-in link didn’t work</h3>
+        <h2 className="h3">That sign-in link didn’t work</h2>
         <p className="muted small">
           {urlError ? urlError.replace(/\+/g, ' ') : 'It may have expired or already been used.'} Links work once and expire after an hour.
         </p>

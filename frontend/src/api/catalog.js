@@ -21,7 +21,7 @@
 // Each provider object carries `vertical` (slug), `verticalInfo` (catalog metadata:
 // name, noun, plural, icon, tint, visual, priceUnit) and `attributes` (its custom fields).
 import { supabase } from '../lib/supabase.js'
-import { avatarUrl, dollars, photoUrl, policyFromRules, toPackage } from '../lib/format.js'
+import { avatarUrl, callName, dollars, photoUrl, policyFromRules, toPackage } from '../lib/format.js'
 import { toKey } from '../lib/dates.js'
 import { VERTICALS, verticalMeta, verticalOfService } from '../verticals/index.js'
 import { parsePoint } from './locations.js'
@@ -148,6 +148,7 @@ export function toProvider(row) {
     profileId: row.profile_id,
     slug: row.slug,
     name: row.display_name,
+    shortName: callName(row.display_name, row.profile?.display_name), // "Maya" or "The Glasshouse DTLA"
     username: row.profile?.username ?? row.slug,
     avatar: avatarUrl(row.profile?.avatar_path, row.display_name),
     cover: covers[0] ?? null,
@@ -155,7 +156,8 @@ export function toProvider(row) {
     albumCount: albums.length,
     city: row.city ?? '',
     timezone: row.timezone,
-    serviceArea: `${(row.city || 'Base').split(',')[0]} + ${row.service_radius_km} km radius`,
+    // Venues and other fixed places travel nowhere (radius 0): just say where they are.
+    serviceArea: row.service_radius_km > 0 ? `${(row.city || 'Base').split(',')[0]} + ${row.service_radius_km} km radius` : (row.city || '').split(',')[0] || 'Service area not set',
     travelFee: fee ? `$${(fee / 100).toFixed(2)}/km beyond service area` : 'No travel fee',
     specialties: attrs.specialties?.length ? attrs.specialties : services.map((s) => s.name),
     categories: services.map((s) => s.name),
@@ -289,6 +291,7 @@ export const toPerson = (row) => ({
   kind: 'person',
   profileId: row.id,
   name: row.display_name || row.username,
+  shortName: (row.display_name || row.username || '').split(' ')[0],
   username: row.username,
   avatar: avatarUrl(row.avatar_path, row.display_name || row.username),
   city: row.city ?? '',

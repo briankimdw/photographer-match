@@ -3,7 +3,7 @@
 /* Header tabs: big text tabs, like "Following | For You" */
 .dc-tabs { display: flex; align-items: center; gap: 18px; }
 .dc-tabs button {
-  position: relative; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: #a3a3a3;
+  position: relative; font-size: 18px; font-weight: 600; letter-spacing: -0.01em; color: var(--muted);
   min-height: 44px; padding: 0 2px; transition: color .15s ease;
 }
 .dc-tabs button.on { color: var(--ink); }

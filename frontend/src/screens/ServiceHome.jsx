@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, Map as MapIcon, Search as SearchIcon, Send, Store, Tag } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
+import useDocumentTitle from '../components/useDocumentTitle.js'
 import { EmptyState, ErrorState } from '../components/States.jsx'
 import { CardsSkeleton, ProviderCard, ProviderRow, RowsSkeleton, SectionHead } from '../components/home/Cards.jsx'
 import { TintIcon } from '../components/home/CatalogIcon.jsx'
@@ -18,6 +19,7 @@ import { getVertical, unitLabel } from '../verticals/catalog.js'
 export default function ServiceHome() {
   const { vertical: slug } = useParams()
   const vertical = getVertical(slug)
+  useDocumentTitle(vertical?.name)
   if (!vertical) {
     return (
       <>
