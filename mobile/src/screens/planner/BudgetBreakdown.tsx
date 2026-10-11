@@ -44,6 +44,8 @@ export default function BudgetBreakdown({ budget, total }: { budget: BudgetLine[
           <Pressable
             key={r.category}
             onPress={() => toggle(r.category)}
+            accessible={false}
+            importantForAccessibility="no"
             style={[
               s.seg,
               { flexGrow: r.share, backgroundColor: r.color },
@@ -59,7 +61,10 @@ export default function BudgetBreakdown({ budget, total }: { budget: BudgetLine[
           key={r.category}
           onPress={() => toggle(r.category)}
           style={[s.row, i > 0 && s.rowBorder, active === r.category && { backgroundColor: c.soft }]}
+          accessibilityRole="button"
           accessibilityLabel={`${r.label}: ${cents(r.cents)}, ${r.pctLabel}%${r.bookable ? '' : ', coming soon'}`}
+          accessibilityHint="Highlights it in the bar"
+          accessibilityState={{ selected: active === r.category }}
         >
           <View style={[s.dot, { backgroundColor: r.color }]} />
           <View style={s.label}>

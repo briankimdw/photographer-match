@@ -197,7 +197,7 @@ function SendTo({ item, onDone, actions }: { item: ShareItem; onDone: () => void
                 onPress={() => toggle(t)}
                 style={s.target}
                 accessibilityRole="checkbox"
-                accessibilityState={{ checked: on }}
+                accessibilityState={{ checked: on }} aria-checked={on}
                 accessibilityLabel={t.name}
               >
                 <View style={[s.av, on && s.avOn]}>
@@ -210,7 +210,7 @@ function SendTo({ item, onDone, actions }: { item: ShareItem; onDone: () => void
                     <Avatar uri={t.avatar} name={t.name} size={58} />
                   )}
                   {t.isGroup && !stack && <View style={s.groupBadge}><Users size={10} color={c.onInk} /></View>}
-                  {on && <View style={[s.check, s.checkOn]}><Check size={12} strokeWidth={3} color="#fff" /></View>}
+                  {on && <View style={[s.check, s.checkOn]}><Check size={12} strokeWidth={3} color={c.onAccent} /></View>}
                 </View>
                 <Text variant="tiny" weight={on ? '600' : '400'} numberOfLines={2} center>{t.name}</Text>
               </Pressable>
@@ -226,6 +226,8 @@ function SendTo({ item, onDone, actions }: { item: ShareItem; onDone: () => void
               style={s.noteInput}
               placeholder="Write a message…"
               placeholderTextColor={c.faint}
+              accessibilityLabel="Message to send with it"
+              maxFontSizeMultiplier={2}
               maxLength={2000}
               value={note}
               onChangeText={setNote}

@@ -9,7 +9,7 @@ import { Pressable, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { Text, VerticalIcon } from '@/components'
-import { makeStyles, useTheme } from '@/theme'
+import { makeStyles, readableTint, useTheme } from '@/theme'
 
 type HeroProps = { icon: string; tint: string; title: string; text?: string; children?: ReactNode }
 
@@ -55,11 +55,11 @@ function FloatButton({ icon: Icon, label, onPress, size }: { icon: LucideIcon; l
 // "12 caterers", "from $45 per person"... pills under the hero title.
 export function MetaPill({ label, icon: Icon, tint }: { label: string; icon?: LucideIcon; tint?: string }) {
   const s = useStyles()
-  const { c } = useTheme()
+  const { c, scheme } = useTheme()
   return (
     <View style={[s.pill, tint ? { borderColor: `${tint}33` } : null]}>
       {Icon && <Icon size={12} color={c.ink} />}
-      <Text variant="tiny" weight="600" style={tint ? { color: tint } : undefined}>{label}</Text>
+      <Text variant="tiny" weight="600" style={tint ? { color: readableTint(tint, scheme, 5) } : undefined}>{label}</Text>
     </View>
   )
 }

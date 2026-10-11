@@ -9,10 +9,11 @@ import { ChevronLeft, ChevronRight, Compass, Sparkles, Star, ThumbsDown } from '
 import { useEffect, useState } from 'react'
 import { StyleSheet, View } from 'react-native'
 import { Gesture, GestureDetector } from 'react-native-gesture-handler'
-import Animated, { interpolate, runOnJS, useAnimatedStyle, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated'
+import Animated, { interpolate, runOnJS, useAnimatedStyle, useReducedMotion, useSharedValue, withSpring, withTiming, type SharedValue } from 'react-native-reanimated'
 
 import { money, startingPrice } from '@shared/lib/format.js'
-import { Avatar, IdVerified, Photo, ProBadge, Text } from '@/components'
+import { Avatar, IdVerified, InA11yGroup, Photo, ProBadge, Text, ratingLabel } from '@/components'
+import { useFocusOnShow } from '@/lib/a11y'
 import { makeStyles } from '@/theme'
 import type { DeckCard, SwipeAction } from './types'
 
@@ -32,10 +33,30 @@ type Props = {
   onSwipeStart: (action: SwipeAction) => void // a drag passed the threshold (the card is leaving)
   onSwiped: (action: SwipeAction) => void // the card has left the screen
   progress?: SharedValue<number> // 0..1 drag progress, for the card behind
+  /** Screen readers have no drag: the same choices as actions (VoiceOver: swipe up / down, double-tap). */
+  onAction?: (action: SwipeAction) => void
+  /** Move the screen-reader cursor here when it mounts (after a swipe, the next card). */
+  focusOnMount?: boolean
 }
 
-export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, onSwipeStart, onSwiped, progress }: Props) {
+// Swipe-free equivalents of every gesture on the card (VoiceOver "Actions" rotor, TalkBack actions menu).
+const A11Y_ACTIONS = [
+  { name: 'activate', label: 'Details' },
+  { name: 'like', label: 'Like' },
+  { name: 'pass', label: 'Pass' },
+  { name: 'save', label: 'Shortlist' },
+  { name: 'next', label: 'Next photo' },
+  { name: 'prev', label: 'Previous photo' },
+  { name: 'profile', label: 'Open profile' },
+  { name: 'correct', label: 'Not into this' },
+]
+
+export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, onSwipeStart, onSwiped, progress, onAction, focusOnMount }: Props) {
   const s = useStyles()
+  // Reduce motion: the card fades out in place instead of flying off and spinning.
+  const reduceMotion = useReducedMotion()
+  const fade = useSharedValue(1)
+  const focusRef = useFocusOnShow<View>(!!focusOnMount, 250)
   const [box, setBox] = useState({ w: 360, h: 520 })
   const tx = useSharedValue(0)
   const ty = useSharedValue(0)
@@ -56,7 +77,9 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
       'worklet'
       if (finished) runOnJS(onSwiped)(action)
     }
-    if (action === 'save') {
+    if (reduceMotion) {
+      fade.value = withTiming(0, { duration: 140 }, done)
+    } else if (action === 'save') {
       ty.value = withTiming(-h * 1.4, { duration: FLY_MS }, done)
     } else {
       ty.value = withTiming(ty.value + 40, { duration: FLY_MS })
@@ -110,7 +133,8 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
   const gesture = Gesture.Race(pan, tap)
 
   const cardStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: `${tx.value / 18}deg` }],
+    opacity: fade.value,
+    transform: [{ translateX: tx.value }, { translateY: ty.value }, { rotate: reduceMotion ? '0deg' : `${tx.value / 18}deg` }],
   }))
   const likeStyle = useAnimatedStyle(() => ({ opacity: interpolate(tx.value, [0, THRESHOLD], [0, 1], 'clamp') }))
   const passStyle = useAnimatedStyle(() => ({ opacity: interpolate(-tx.value, [0, THRESHOLD], [0, 1], 'clamp') }))
@@ -118,14 +142,37 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
 
   const from = startingPrice(p)
   const meta = [card.category, from != null && `from ${money(from)}`].filter(Boolean).map((x) => `· ${x}`).join(' ')
+  const a11yLabel = [
+    `${card.title || 'Photo'} by ${p.name}`,
+    card.photos.length > 1 && `photo ${shot + 1} of ${card.photos.length}`,
+    card.category,
+    p.idVerified && 'identity verified',
+    p.pro && 'Verified Pro',
+    ratingLabel(p.rating),
+    from != null && `from ${money(from)}`,
+    match != null && `${match}% taste match`,
+    card.reason,
+  ].filter(Boolean).join(', ')
 
   return (
     <GestureDetector gesture={gesture}>
       <Animated.View
+        ref={focusRef as any}
         style={[s.card, cardStyle]}
         onLayout={(e) => setBox({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}
-        accessibilityLabel={`${card.title || 'Photo'} by ${p.name}. Swipe right to like, left to pass, up to shortlist.`}
+        accessible
+        accessibilityRole="image"
+        accessibilityLabel={a11yLabel}
+        accessibilityHint="Double-tap for details. Swipe up or down for Like, Pass, Shortlist and more."
+        accessibilityActions={A11Y_ACTIONS}
+        onAccessibilityAction={(e) => {
+          const name = e.nativeEvent.actionName
+          if (name === 'activate') onTap('details')
+          else if (name === 'like' || name === 'pass' || name === 'save') onAction?.(name)
+          else onTap(name as TapZone)
+        }}
       >
+        <InA11yGroup value>
         {/* pointerEvents none: on the web target an <img> would start a native image drag (pointercancel) */}
         <View style={StyleSheet.absoluteFill} pointerEvents="none"><Photo uri={photo?.src} style={StyleSheet.absoluteFill} /></View>
 
@@ -143,7 +190,7 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
             {card.reason ? (
               <View style={[s.why, card.exploration && s.whyExplore]}>
                 {card.exploration ? <Compass size={13} color="#e0e7ff" /> : <Sparkles size={13} color="#111" />}
-                <Text variant="tiny" weight="600" numberOfLines={1} style={[s.whyText, card.exploration && { color: '#e0e7ff' }]}>{card.reason}</Text>
+                <Text maxFontSizeMultiplier={1.4} variant="tiny" weight="600" numberOfLines={1} style={[s.whyText, card.exploration && { color: '#e0e7ff' }]}>{card.reason}</Text>
               </View>
             ) : <View />}
             <View style={s.iconBtn}><ThumbsDown size={16} color="#fff" /></View>
@@ -151,20 +198,20 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
 
           {showHint && card.photos.length > 1 && (
             <View style={s.hint}>
-              <Text variant="tiny" weight="600" style={s.white}>Tap the edges for {card.photos.length} photos · swipe to like or pass</Text>
+              <Text maxFontSizeMultiplier={1.4} variant="tiny" weight="600" style={s.white}>Tap the edges for {card.photos.length} photos · swipe to like or pass</Text>
             </View>
           )}
 
-          <Animated.View style={[s.stamp, s.like, likeStyle]}><Text style={[s.stampText, { color: '#22c55e' }]}>LIKE</Text></Animated.View>
-          <Animated.View style={[s.stamp, s.pass, passStyle]}><Text style={[s.stampText, { color: '#ef4444' }]}>PASS</Text></Animated.View>
-          <Animated.View style={[s.stamp, s.save, saveStyle]}><Text style={[s.stampText, { color: '#3b82f6' }]}>SHORTLIST</Text></Animated.View>
+          <Animated.View style={[s.stamp, s.like, likeStyle]}><Text maxFontSizeMultiplier={1.4} style={[s.stampText, { color: '#22c55e' }]}>LIKE</Text></Animated.View>
+          <Animated.View style={[s.stamp, s.pass, passStyle]}><Text maxFontSizeMultiplier={1.4} style={[s.stampText, { color: '#ef4444' }]}>PASS</Text></Animated.View>
+          <Animated.View style={[s.stamp, s.save, saveStyle]}><Text maxFontSizeMultiplier={1.4} style={[s.stampText, { color: '#3b82f6' }]}>SHORTLIST</Text></Animated.View>
 
           <LinearGradient colors={['transparent', 'rgba(0,0,0,0.78)']} style={s.foot}>
             <View style={s.footRow}>
               <View style={s.avatarRing}><Avatar uri={p.avatar} name={p.name} size={40} /></View>
               <View style={s.grow}>
                 <View style={s.nameRow}>
-                  <Text variant="body" weight="700" numberOfLines={1} style={[s.white, s.shrink]}>{p.name}</Text>
+                  <Text maxFontSizeMultiplier={1.4} variant="body" weight="700" numberOfLines={1} style={[s.white, s.shrink]}>{p.name}</Text>
                   {p.idVerified && <IdVerified />}
                   {p.pro && <ProBadge />}
                 </View>
@@ -172,24 +219,25 @@ export function SwipeCard({ card, shot, showHint, match, exit, disabled, onTap, 
                   {p.rating != null ? (
                     <>
                       <Star size={11} color="#fbbf24" fill="#fbbf24" />
-                      <Text variant="tiny" weight="600" style={s.white}>{p.rating.toFixed(1)}</Text>
+                      <Text maxFontSizeMultiplier={1.4} variant="tiny" weight="600" style={s.white}>{p.rating.toFixed(1)}</Text>
                     </>
                   ) : (
-                    <Text variant="tiny" style={s.white}>New</Text>
+                    <Text maxFontSizeMultiplier={1.4} variant="tiny" style={s.white}>New</Text>
                   )}
-                  <Text variant="tiny" numberOfLines={1} style={[s.dim, s.shrink]}>{meta}</Text>
+                  <Text maxFontSizeMultiplier={1.4} variant="tiny" numberOfLines={1} style={[s.dim, s.shrink]}>{meta}</Text>
                 </View>
               </View>
               {match != null && (
                 <View style={s.match}>
-                  <Text weight="800" style={s.white}>{match}%</Text>
-                  <Text variant="caption" style={s.dim}>match</Text>
+                  <Text maxFontSizeMultiplier={1.4} weight="800" style={s.white}>{match}%</Text>
+                  <Text maxFontSizeMultiplier={1.4} variant="caption" style={s.dim}>match</Text>
                 </View>
               )}
             </View>
-            {!!card.exif && <Text variant="tiny" style={s.exif} numberOfLines={1}>{card.exif}</Text>}
+            {!!card.exif && <Text maxFontSizeMultiplier={1.4} variant="tiny" style={s.exif} numberOfLines={1}>{card.exif}</Text>}
           </LinearGradient>
         </View>
+        </InA11yGroup>
       </Animated.View>
     </GestureDetector>
   )
@@ -203,7 +251,7 @@ export function BehindCard({ card, progress }: { card: DeckCard; progress: Share
     transform: [{ scale: 0.95 + progress.value * 0.05 }, { translateY: 10 - progress.value * 10 }],
   }))
   return (
-    <Animated.View style={[s.card, s.behind, style]} pointerEvents="none">
+    <Animated.View style={[s.card, s.behind, style]} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
       <Photo uri={card.photos[0]?.src} style={StyleSheet.absoluteFill} />
     </Animated.View>
   )

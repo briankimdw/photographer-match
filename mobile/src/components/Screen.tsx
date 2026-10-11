@@ -74,8 +74,8 @@ export function TopBar({ title, subtitle, back = true, right }: { title?: string
         )}
       </View>
       <View style={s.titleWrap}>
-        {!!title && <Text variant="h4" numberOfLines={1} center>{title}</Text>}
-        {!!subtitle && <Text variant="tiny" muted numberOfLines={1} center>{subtitle}</Text>}
+        {!!title && <Text variant="h4" numberOfLines={1} center accessibilityRole="header" maxFontSizeMultiplier={1.4}>{title}</Text>}
+        {!!subtitle && <Text variant="tiny" muted numberOfLines={1} center maxFontSizeMultiplier={1.4}>{subtitle}</Text>}
       </View>
       <View style={[s.side, s.sideRight]}>{right}</View>
     </View>
@@ -88,7 +88,7 @@ const useStyles = makeStyles((t) => ({
   padded: { padding: t.space.lg },
   scrollContent: { paddingBottom: t.space.xxl },
   topbar: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: t.space.xs, height: 48,
+    flexDirection: 'row', alignItems: 'center', paddingHorizontal: t.space.xs, minHeight: 48,
     borderBottomWidth: 1, borderBottomColor: t.c.line, backgroundColor: t.c.bg,
   },
   side: { width: 88, flexDirection: 'row', alignItems: 'center' },

@@ -19,6 +19,7 @@ import { StatusPill } from '@/screens/bookings/parts'
 import { EventsShelf } from '@/screens/events/parts'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
+import { IMAGE_BUTTON_ROLE } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 
 // Bookings that still need something from someone.
@@ -318,7 +319,9 @@ export function ClientView({ bookings }: { bookings: QueryState<any[]> }) {
                 setOpenCollection(null)
                 router.push({ pathname: '/gallery/[personId]', params: { personId: ph.providerId, post: ph.albumId, photo: ph.id } })
               }}
-              accessibilityLabel="Open in the gallery"
+              accessibilityRole={IMAGE_BUTTON_ROLE}
+              accessibilityLabel="Saved photo, open in the gallery"
+              accessibilityState={{ disabled: !(ph.providerId && ph.albumId) }}
             >
               <Photo uri={ph.src} style={s.fill} />
             </Pressable>

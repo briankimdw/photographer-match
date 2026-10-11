@@ -6,6 +6,8 @@
 // and the tabs per vertical (Portfolio, Packages + service-area map + cancellation policy,
 // Gear, Reviews with the review detail sheet).
 // TODO(port): report / block menu (ModerationSheet), scroll to the tabs when the rating is tapped.
+import { callName } from '@shared/lib/format.js'
+import * as Linking from 'expo-linking'
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router'
 import {
   CalendarCheck, CalendarX, Camera, CircleDot, Heart, Images, MapPin, MessageCircle, Package as PackageIcon, Plus, Send, Star, UserX,
@@ -28,7 +30,7 @@ import { ShareSheet } from '@/components/share/ShareSheet'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
-import { makeStyles, useTheme } from '@/theme'
+import { makeStyles, useReadableTint, useTheme } from '@/theme'
 import type { Person, Provider, Vertical } from '@/types'
 import { AlbumGrid, type Album } from './AlbumGrid'
 import { AttributeList } from './AttributeList'
@@ -53,6 +55,7 @@ const one = (v?: string | string[]) => (Array.isArray(v) ? v[0] : v)
 export default function Profile() {
   const s = useStyles()
   const { c } = useTheme()
+  const readable = useReadableTint()
   const router = useRouter()
   const pathname = usePathname()
   const params = useLocalSearchParams<{ id: string; tab?: string; dates?: string }>()
@@ -113,7 +116,8 @@ export default function Profile() {
 
   const isMine = !!user && person.profileId === user.id
   const handle = person.username || provider?.slug
-  const firstName = (person.name || '').split(' ')[0]
+  // "Maya" for people and vendors under their own name; the whole business name otherwise.
+  const firstName = provider ? (provider as any).shortName || callName(provider.name) : (person.name || '').split(' ')[0]
   // A specialty that is a catalog service ("Wedding") filters by it; anything else is a text search.
   const categoryFor = (name: string) => {
     const pool = [...VERTICALS.filter((v: Vertical) => v.slug === provider?.vertical), ...VERTICALS]
@@ -142,7 +146,7 @@ export default function Profile() {
     // Vendors: the in-app "Send to" sheet (cards in chat). People: the system share sheet.
     if (provider) return setSharing(true)
     const path = `/u/${person.username || person.id}`
-    Share.share({ message: `Check out ${handle ? `@${handle}` : person.name} on Event Organizer: eventorganizer:/${path}` }).catch(() => {})
+    Share.share({ message: `Check out ${handle ? `@${handle}` : person.name} on Event Organizer: ${Linking.createURL(path)}` }).catch(() => {})
   }
 
   return (
@@ -156,7 +160,8 @@ export default function Profile() {
               icon={Heart}
               filled={shortlist.has(provider.id)}
               color={shortlist.has(provider.id) ? c.accent : c.ink}
-              label={shortlist.has(provider.id) ? 'Remove from shortlist' : 'Save to shortlist'}
+              label="Shortlist"
+              selected={shortlist.has(provider.id)}
               onPress={() => toggleShortlist(provider.id)}
             />
           )}
@@ -181,7 +186,7 @@ export default function Profile() {
               accessibilityLabel={`More ${provider.verticalInfo.plural}`}
             >
               <VerticalIcon name={provider.verticalInfo.icon} size={12} color={provider.verticalInfo.tint} />
-              <Text variant="tiny" weight="700" style={{ color: provider.verticalInfo.tint }}>{provider.verticalInfo.name}</Text>
+              <Text variant="tiny" weight="700" style={{ color: readable(provider.verticalInfo.tint, 5) }}>{provider.verticalInfo.name}</Text>
             </Pressable>
           )}
           {!!person.city && (
@@ -206,7 +211,7 @@ export default function Profile() {
             )}
             <Text variant="small" muted>·</Text>
             {provider.followers > 0 ? (
-              <Pressable onPress={() => setFollowersOpen(true)} accessibilityRole="button">
+              <Pressable onPress={() => setFollowersOpen(true)} hitSlop={{ top: 12, bottom: 12 }} accessibilityRole="button" accessibilityLabel={`${provider.followers} follower${provider.followers === 1 ? '' : 's'}`} accessibilityHint="Shows who follows them">
                 <Text variant="small" muted>
                   <Text variant="small" weight="700">{provider.followers}</Text> follower{provider.followers === 1 ? '' : 's'}
                 </Text>

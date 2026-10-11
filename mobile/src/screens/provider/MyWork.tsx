@@ -153,7 +153,13 @@ function WorkGrid({ data, setData }: { data: Data; setData: React.Dispatch<React
               )
               if (!reordering) {
                 return (
-                  <Pressable key={a.id} style={s.tile} onPress={() => router.setParams({ post: a.id })} accessibilityRole="button" accessibilityLabel={a.title}>
+                  <Pressable
+                    key={a.id}
+                    style={s.tile}
+                    onPress={() => router.setParams({ post: a.id })}
+                    accessibilityRole="button"
+                    accessibilityLabel={[a.title || 'Post', a.type === 'beforeafter' ? 'before and after' : a.photos.length > 1 && `${a.photos.length} photos`, STATUS_LABEL[a.status]].filter(Boolean).join(', ')}
+                  >
                     {inner}
                   </Pressable>
                 )
@@ -163,10 +169,10 @@ function WorkGrid({ data, setData }: { data: Data; setData: React.Dispatch<React
                   {inner}
                   <View style={s.pos}><Text variant="caption" style={{ color: c.onInk }}>{i + 1}</Text></View>
                   <View style={s.arrows}>
-                    <Pressable onPress={() => move(i, i - 1)} disabled={i === 0} style={[s.arrow, i === 0 && s.off]} accessibilityLabel={`Move “${a.title}” earlier`}>
+                    <Pressable onPress={() => move(i, i - 1)} disabled={i === 0} hitSlop={6} style={[s.arrow, i === 0 && s.off]} accessibilityRole="button" accessibilityLabel={`Move “${a.title}” earlier, now ${i + 1} of ${shown.length}`} accessibilityState={{ disabled: i === 0 }}>
                       <ChevronLeft size={16} color={c.ink} />
                     </Pressable>
-                    <Pressable onPress={() => move(i, i + 1)} disabled={i === shown.length - 1} style={[s.arrow, i === shown.length - 1 && s.off]} accessibilityLabel={`Move “${a.title}” later`}>
+                    <Pressable onPress={() => move(i, i + 1)} disabled={i === shown.length - 1} hitSlop={6} style={[s.arrow, i === shown.length - 1 && s.off]} accessibilityRole="button" accessibilityLabel={`Move “${a.title}” later, now ${i + 1} of ${shown.length}`} accessibilityState={{ disabled: i === shown.length - 1 }}>
                       <ChevronRight size={16} color={c.ink} />
                     </Pressable>
                   </View>

@@ -7,7 +7,7 @@ import {
   acceptDelivery, bookingError, cancelBooking, getBooking, markDelivered, respondToBooking, respondToOffer,
 } from '@shared/api/bookings.js'
 import { today } from '@shared/lib/dates.js'
-import { money } from '@shared/lib/format.js'
+import { callName, money } from '@shared/lib/format.js'
 import { deliversMedia, nounFor, quantityFor, sessionNoun } from '@shared/verticals/index.js'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { Calendar, CalendarX, Clock, CreditCard, Lock, MapPin, MessageCircle, ShieldAlert } from 'lucide-react-native'
@@ -69,7 +69,7 @@ function Detail({ b, reload }: { b: Booking; reload: () => void }) {
   const { toast, myProvider } = useStore()
   const isClient = b.role === 'client'
   const other = isClient ? b.provider : { ...b.client, idVerified: false, pro: false }
-  const first = (other.name || (isClient ? `The ${nounFor(b.vertical)}` : 'The client')).split(' ')[0]
+  const first = (other as any).shortName || (other.name ? callName(other.name) : isClient ? `The ${nounFor(b.vertical)}` : 'The client')
   const [sheet, setSheet] = useState<'cancel' | 'counter' | null>(null)
   const [busy, setBusy] = useState(false)
   const [counterTotal, setCounterTotal] = useState('')

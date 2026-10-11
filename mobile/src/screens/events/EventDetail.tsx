@@ -15,12 +15,12 @@ import {
 } from '@shared/api/events.js'
 import { priceFrom } from '@shared/api/home.js'
 import { cents } from '@shared/lib/planBrief.js'
-import { Avatar, Button, Chip, EmptyState, ErrorState, IconButton, Loading, Photo, RatingInline, Screen, Sheet, SignInPrompt, Text, TextField, VerticalIcon } from '@/components'
+import { Avatar, Button, Chip, EmptyState, ErrorState, IconButton, InA11yGroup, Loading, Photo, RatingInline, ratingLabel, Screen, Sheet, SignInPrompt, Text, TextField, VerticalIcon } from '@/components'
 import { ShareSheet } from '@/components/share/ShareSheet'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
-import { makeStyles, useTheme } from '@/theme'
+import { makeStyles, readableTint, useTheme } from '@/theme'
 import { SetupNote, type EventItem } from './AddToEvent'
 import { InviteSheet, MemberStack } from './parts'
 
@@ -65,7 +65,7 @@ function Workspace({ board, reload, setData, openInvite, refreshing }: {
   board: Board; reload: () => void; setData: (fn: (d: Board | null | undefined) => Board | null | undefined) => void; openInvite: boolean; refreshing: boolean
 }) {
   const s = useStyles()
-  const { c } = useTheme()
+  const { c, scheme } = useTheme()
   const router = useRouter()
   const { toast } = useStore()
   const ev = board.event
@@ -118,7 +118,7 @@ function Workspace({ board, reload, setData, openInvite, refreshing }: {
       <View style={[s.hero, { backgroundColor: `${tint}1c` }]}>
         <View style={s.heroTop}>
           <View style={s.heroIcon}><VerticalIcon name={ev.icon} size={22} color={tint} /></View>
-          {!!countdown && <View style={s.count}><Text variant="tiny" weight="700" style={{ color: tint }}>{countdown}</Text></View>}
+          {!!countdown && <View style={s.count}><Text variant="tiny" weight="700" style={{ color: readableTint(tint, scheme, 5) }}>{countdown}</Text></View>}
         </View>
         <Text variant="h2" style={{ marginTop: 10 }}>{ev.title}</Text>
         <View style={s.lines}>
@@ -238,7 +238,13 @@ function CandidateRow({ cand, first, canVote, onVote, onOpen }: { cand: Cand; fi
         <Photo uri={p?.cover} vertical={p?.vertical || cand.vertical} style={s.candImg} />
       </Pressable>
       <View style={s.grow}>
-        <Pressable onPress={onOpen} accessibilityRole="button" accessibilityLabel={`${p?.name || 'Vendor'}: status and actions`}>
+        <InA11yGroup value>
+        <Pressable
+          onPress={onOpen}
+          accessibilityRole="button"
+          accessibilityLabel={`${p?.name || 'Vendor'}${p ? `, ${ratingLabel(p.rating)}` : ', no longer listed'}${price ? `, ${price}` : ''}${cand.note ? `, note: ${cand.note}` : ''}`}
+          accessibilityHint="Status and actions"
+        >
           <Text variant="body" weight="700" numberOfLines={1}>{p?.name || 'A vendor'}</Text>
           <View style={s.rowCenter}>
             {p ? <RatingInline rating={p.rating} /> : <Text variant="tiny" muted>No longer listed</Text>}
@@ -246,6 +252,7 @@ function CandidateRow({ cand, first, canVote, onVote, onOpen }: { cand: Cand; fi
           </View>
           {!!cand.note && <Text variant="tiny" style={{ fontStyle: 'italic', marginTop: 2 }}>“{cand.note}”</Text>}
         </Pressable>
+        </InA11yGroup>
         <View style={[s.rowCenter, { gap: 6, marginTop: 6, flexWrap: 'wrap' }]}>
           <Pressable onPress={onOpen} hitSlop={6} accessibilityRole="button" accessibilityLabel={`Status: ${cand.stage}. Change`}>
             <StagePill stage={cand.stage} />

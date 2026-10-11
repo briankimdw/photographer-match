@@ -6,10 +6,12 @@ import { Check, ChevronRight, type LucideIcon } from 'lucide-react-native'
 import { useCallback, useRef, type ReactNode } from 'react'
 import { Pressable, View, type StyleProp, type ViewStyle } from 'react-native'
 
-import { Avatar, IdVerified, ProBadge, Text } from '@/components'
+import { Avatar, IdVerified, InA11yGroup, ProBadge, Text } from '@/components'
 import { makeStyles, useTheme, type Theme } from '@/theme'
 
 const labels = statusLabels as Record<string, string>
+/** "Requested", "Confirmed"... (for screen-reader labels of rows that show a StatusPill). */
+export const statusLabel = (status: string) => labels[status] ?? status.replace(/_/g, ' ')
 
 // The web's .s-<status> pill colors (styles.css), with dark-mode equivalents.
 function pillColors(status: string, t: Theme): { bg: string; fg: string } {
@@ -19,7 +21,7 @@ function pillColors(status: string, t: Theme): { bg: string; fg: string } {
     case 'countered':
       return dark ? { bg: '#3a2a0a', fg: '#fcd34d' } : { bg: '#fef3c7', fg: '#92400e' }
     case 'accepted':
-      return { bg: t.c.accentSoft, fg: t.c.accent }
+      return { bg: t.c.accentSoft, fg: t.c.accentInk }
     case 'confirmed':
     case 'in_progress':
       return dark ? { bg: '#13234a', fg: '#93c5fd' } : { bg: '#dbeafe', fg: '#1d4ed8' }
@@ -153,11 +155,12 @@ export function PersonRow({ person, sub, right }: { person: PersonLike; sub?: st
   const router = useRouter()
   return (
     <View style={s.person}>
+      <InA11yGroup value>
       <Pressable
         style={({ pressed }) => [s.personLink, pressed && { opacity: 0.7 }]}
         onPress={person.id ? () => router.push({ pathname: '/u/[id]', params: { id: person.id! } }) : undefined}
         accessibilityRole="link"
-        accessibilityLabel={person.name ?? undefined}
+        accessibilityLabel={[person.name, person.idVerified && 'identity verified', person.pro && 'Verified Pro'].filter(Boolean).join(', ') || undefined}
       >
         <Avatar uri={person.avatar} name={person.name ?? ''} size="md" />
         <View style={s.personText}>
@@ -170,6 +173,7 @@ export function PersonRow({ person, sub, right }: { person: PersonLike; sub?: st
         </View>
         <ChevronRight size={16} color={c.muted} />
       </Pressable>
+      </InA11yGroup>
       {right}
     </View>
   )

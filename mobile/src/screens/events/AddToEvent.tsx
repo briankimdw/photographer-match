@@ -18,7 +18,7 @@ import { VerticalIcon } from '@/components/VerticalIcon'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
-import { makeStyles, useTheme } from '@/theme'
+import { makeStyles, readableTint, useTheme } from '@/theme'
 
 export type EventItem = Awaited<ReturnType<typeof listUpcomingEvents>>[number]
 type Vendor = { id: string; name: string; vertical: string; profileId?: string | null }
@@ -26,6 +26,7 @@ type Vendor = { id: string; name: string; vertical: string; profileId?: string |
 // Month + day tile in the event's tint (an icon when there's no date yet).
 export function EventDate({ ev, size = 46 }: { ev: Pick<EventItem, 'startDate' | 'tint' | 'icon'>; size?: number }) {
   const s = useStyles()
+  const { scheme } = useTheme()
   const tint = ev.tint || '#6366f1'
   if (!ev.startDate) {
     return (
@@ -37,7 +38,7 @@ export function EventDate({ ev, size = 46 }: { ev: Pick<EventItem, 'startDate' |
   const d = fromKey(ev.startDate)
   return (
     <View style={[s.date, { width: size, backgroundColor: `${tint}1f` }]}>
-      <Text variant="caption" style={{ color: tint, textTransform: 'uppercase', marginTop: 5 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</Text>
+      <Text variant="caption" style={{ color: readableTint(tint, scheme, 5), textTransform: 'uppercase', marginTop: 5 }}>{d.toLocaleDateString('en-US', { month: 'short' })}</Text>
       <Text variant="h3" weight="700" style={{ marginBottom: 4 }}>{d.getDate()}</Text>
     </View>
   )

@@ -13,13 +13,14 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { countProvidersByVertical, getMatches } from '@shared/api/catalog.js'
 import { getFeed, logSwipe, undoSwipe } from '@shared/api/discover.js'
-import { deckVerticals } from '@shared/api/home.js'
+import { deckVerticals, verticalsWithPosts } from '@shared/api/home.js'
 import { startInquiry } from '@shared/api/messages.js'
 import { getVertical } from '@shared/verticals/catalog.js'
 import { Button, Chip, EmptyState, ErrorState, Loading } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
+import { announce } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import { CorrectSheet, DetailsSheet, MatchOverlay, ShortlistSheet, TasteSheet } from './DeckSheets'
 import { DiscoverHeader, PillButton } from './DiscoverHeader'
@@ -65,7 +66,8 @@ export function SwipeDeck({ tabs, initialVertical = 'photography' }: { tabs: Rea
   const categoryName = categories.find((x: { slug: string }) => x.slug === category)?.name
   const feedCategory = category || vertical
   const verticalCounts = useQuery<Record<string, number>>(() => countProvidersByVertical(), [])
-  const pickable = deckVerticals(verticalCounts.data) as PickableVertical[]
+  const postVerticals = useQuery(() => verticalsWithPosts(), [])
+  const pickable = deckVerticals(verticalCounts.data, postVerticals.data as any) as PickableVertical[]
   const matches = useQuery<Map<string, number>>(uid ? () => getMatches() : null, [uid])
   const matchOf = (providerId: string) => matches.data?.get(providerId) ?? null
 
@@ -130,6 +132,7 @@ export function SwipeDeck({ tabs, initialVertical = 'photography' }: { tabs: Rea
     busy.current = true
     setSheet(null)
     setExit(action)
+    announce(action === 'like' ? `Liked ${card.provider.name}` : action === 'save' ? `Shortlisted ${card.provider.name}` : 'Passed')
     return true
   }
 
@@ -302,6 +305,8 @@ export function SwipeDeck({ tabs, initialVertical = 'photography' }: { tabs: Rea
             onSwipeStart={(a) => begin(a)}
             onSwiped={commit}
             progress={dragProgress}
+            onAction={decide}
+            focusOnMount={history.length > 0}
           />
         )}
       </View>
@@ -310,7 +315,7 @@ export function SwipeDeck({ tabs, initialVertical = 'photography' }: { tabs: Rea
         <RoundButton icon={RotateCcw} label="Undo" size="small" onPress={undo} disabled={!history.length || !!exit} />
         <RoundButton icon={X} label="Pass" color="#ef4444" onPress={() => decide('pass')} disabled={!card} />
         <RoundButton icon={Bookmark} label="Shortlist" size="mid" color="#3b82f6" onPress={() => decide('save')} disabled={!card} />
-        <RoundButton icon={Heart} label="Like" color="#22c55e" onPress={() => decide('like')} disabled={!card} />
+        <RoundButton icon={Heart} label="Like" color="#16a34a" onPress={() => decide('like')} disabled={!card} />
         <RoundButton icon={Info} label="Details" size="small" onPress={() => setSheet('details')} disabled={!card} />
       </View>
 
@@ -378,6 +383,7 @@ function RoundButton({ icon: Icon, label, onPress, disabled, color, size = 'big'
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      hitSlop={Math.max(0, (48 - px) / 2)}
       style={({ pressed }) => [s.round, { width: px, height: px, borderRadius: px / 2 }, disabled && s.disabled, pressed && s.pressed]}
       accessibilityRole="button"
       accessibilityLabel={label}

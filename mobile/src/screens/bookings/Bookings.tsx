@@ -5,7 +5,7 @@
 import { listMyBookings } from '@shared/api/bookings.js'
 import { availabilityByDay } from '@shared/api/catalog.js'
 import { fmtChip, fromKey, isPast, toKey, today } from '@shared/lib/dates.js'
-import { money } from '@shared/lib/format.js'
+import { callName, money } from '@shared/lib/format.js'
 import { deliversMedia } from '@shared/verticals/index.js'
 import { useRouter, type Href } from 'expo-router'
 import { CalendarX, ChevronRight, Clock, History, MapPin, Search, Star, X } from 'lucide-react-native'
@@ -18,9 +18,10 @@ import { useAuth } from '@/state/auth'
 import { makeStyles, useTheme } from '@/theme'
 import DatePicker from './DatePicker'
 import type { Booking } from './NeedsAction'
-import { StatusPill, useRefocus } from './parts'
+import { StatusPill, statusLabel, useRefocus } from './parts'
 
-const firstName = (name = '') => name.split(' ')[0]
+// How to address the vendor: "Maya" or "The Glasshouse DTLA" (never just "The").
+const callOf = (p?: { name?: string; shortName?: string } | null) => p?.shortName || callName(p?.name || '')
 
 // What the client has to do next, per booking (web attentionFor). Payments aren't live
 // yet, so an accepted booking can't be paid in the app: say so instead of faking it.
@@ -30,7 +31,7 @@ function attentionFor(b: Booking): { title: string; cta: string; to?: string } |
   if (b.status === 'delivered') {
     return deliversMedia(b.vertical)
       ? { title: b.vertical === 'videography' ? 'Your video is ready' : 'Your photos are ready', cta: 'Review delivery', to: `/bookings/${b.id}/delivery` }
-      : { title: `${firstName(b.provider.name) || 'Your vendor'} marked this done`, cta: 'Confirm' }
+      : { title: `${callOf(b.provider as any) || 'Your vendor'} marked this done`, cta: 'Confirm' }
   }
   if (b.status === 'completed' && b.reviewWindowOpen && !b.myReview) return { title: 'How did it go?', cta: 'Leave a review', to: `/bookings/${b.id}/review` }
   return null
@@ -227,7 +228,7 @@ function AttentionCard({ b }: { b: Booking }) {
       <Avatar uri={b.provider.avatar} name={b.provider.name} size={44} />
       <View style={s.grow}>
         <Text variant="small" weight="700">{a.title}</Text>
-        <Text variant="tiny" muted numberOfLines={2}>{b.packageName} with {firstName(b.provider.name)} · {b.date}</Text>
+        <Text variant="tiny" muted numberOfLines={2}>{b.packageName} with {callOf(b.provider as any)} · {b.date}</Text>
       </View>
       <View style={s.attCta}>
         <Text style={s.attCtaText}>{a.cta}</Text>
@@ -247,7 +248,7 @@ function TimelineItem({ b, past }: { b: Booking; past?: boolean }) {
       onPress={() => router.push({ pathname: '/bookings/[id]', params: { id: b.id } })}
       style={({ pressed }) => [s.item, pressed && s.pressed]}
       accessibilityRole="button"
-      accessibilityLabel={`${b.packageName} with ${b.provider.name}, ${b.date}`}
+      accessibilityLabel={`${b.packageName} with ${b.provider.name}, ${b.date}, ${statusLabel(b.status)}${needsReview ? ', leave a review' : ''}`}
     >
       <View style={[s.dateBlock, past && s.dateBlockPast]}>
         <Text style={[s.dateSmall, past && s.dateTextPast]}>{b.day.toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</Text>
@@ -286,7 +287,12 @@ function MiniBooking({ b }: { b: Booking }) {
   const s = useStyles()
   const router = useRouter()
   return (
-    <Pressable onPress={() => router.push({ pathname: '/bookings/[id]', params: { id: b.id } })} style={({ pressed }) => [s.mini, pressed && s.pressed]} accessibilityRole="button">
+    <Pressable
+      onPress={() => router.push({ pathname: '/bookings/[id]', params: { id: b.id } })}
+      style={({ pressed }) => [s.mini, pressed && s.pressed]}
+      accessibilityRole="button"
+      accessibilityLabel={`${b.packageName}, ${fmtChip(b.day)}, ${b.time}, with ${b.provider.name}, ${statusLabel(b.status)}`}
+    >
       <Avatar uri={b.provider.avatar} name={b.provider.name} size="sm" />
       <View style={s.grow}>
         <Text variant="small" weight="700" numberOfLines={1}>{b.packageName}</Text>

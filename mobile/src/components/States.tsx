@@ -2,8 +2,10 @@
 // so every screen handles "no data yet" the same way.
 import { usePathname, useRouter } from 'expo-router'
 import { LogIn, type LucideIcon } from 'lucide-react-native'
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { ActivityIndicator, View } from 'react-native'
+
+import { announce } from '@/lib/a11y'
 
 import { makeStyles, useTheme } from '@/theme'
 import { Button } from './Button'
@@ -28,11 +30,11 @@ export function EmptyState({ icon: Icon, title, text, action, compact = false }:
   return (
     <View style={[s.state, compact && s.compact]}>
       {Icon && (
-        <View style={[s.icon, compact && s.iconCompact]}>
+        <View style={[s.icon, compact && s.iconCompact]} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Icon size={compact ? 20 : 26} color={c.muted} />
         </View>
       )}
-      {!!title && <Text variant="h4" center>{title}</Text>}
+      {!!title && <Text variant="h4" center accessibilityRole="header">{title}</Text>}
       {!!text && <Text variant="small" muted center style={s.text}>{text}</Text>}
       {action ? <View style={s.action}>{action}</View> : null}
     </View>
@@ -41,10 +43,12 @@ export function EmptyState({ icon: Icon, title, text, action, compact = false }:
 
 export function ErrorState({ error, onRetry }: { error?: { message?: string } | null; onRetry?: () => void }) {
   const s = useStyles()
+  const msg = error?.message || 'Check your connection and try again.'
+  useEffect(() => announce(`Couldn’t load this. ${msg}`), [msg])
   return (
     <View style={s.state}>
-      <Text variant="h4" center>Couldn’t load this</Text>
-      <Text variant="small" muted center style={s.text}>{error?.message || 'Check your connection and try again.'}</Text>
+      <Text variant="h4" center accessibilityRole="header">Couldn’t load this</Text>
+      <Text variant="small" muted center style={s.text}>{msg}</Text>
       {onRetry && <View style={s.action}><Button title="Try again" variant="ghost" size="sm" onPress={onRetry} /></View>}
     </View>
   )

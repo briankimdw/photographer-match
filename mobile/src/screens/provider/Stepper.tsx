@@ -32,7 +32,8 @@ export default function Stepper({ stops, value, onChange, format = String, label
     )
   }
   return (
-    <View style={s.row} accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ text: format(stops[i]) }}
+    // One "adjustable" element for screen readers (swipe up / down to change); the − / + buttons are for touch.
+    <View style={s.row} accessible accessibilityRole="adjustable" accessibilityLabel={label} accessibilityValue={{ text: format(stops[i]) }}
       accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
       onAccessibilityAction={(e) => {
         const j = i + (e.nativeEvent.actionName === 'increment' ? 1 : -1)
@@ -40,7 +41,7 @@ export default function Stepper({ stops, value, onChange, format = String, label
       }}
     >
       {btn(-1)}
-      <Text variant="h3" style={s.value}>{format(stops[i])}</Text>
+      <Text variant="h3" style={s.value} maxFontSizeMultiplier={1.5}>{format(stops[i])}</Text>
       {btn(1)}
     </View>
   )

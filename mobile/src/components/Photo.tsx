@@ -17,12 +17,15 @@ type PhotoProps = {
   vertical?: string | null
 }
 
+// Decorative unless given an accessibilityLabel: most photos sit inside a card or button
+// whose label already says what it is, so screen readers skip them (alt="" on the web).
+
 export function Photo({ uri, style, contentFit = 'cover', accessibilityLabel, vertical }: PhotoProps) {
   const { c } = useTheme()
   if (!uri && vertical) {
     const m = verticalMeta(vertical) as { tint: string; icon: string }
     return (
-      <View style={[{ backgroundColor: m.tint + '26', alignItems: 'center', justifyContent: 'center' }, style]}>
+      <View style={[{ backgroundColor: m.tint + '26', alignItems: 'center', justifyContent: 'center' }, style]} accessible={false} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
         <VerticalIcon name={m.icon} size={30} color={m.tint} />
       </View>
     )
@@ -35,8 +38,11 @@ export function Photo({ uri, style, contentFit = 'cover', accessibilityLabel, ve
       contentFit={contentFit}
       transition={150}
       cachePolicy="memory-disk"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={accessibilityLabel ?? ''}
+      accessibilityRole={accessibilityLabel ? 'image' : undefined}
       accessible={!!accessibilityLabel}
+      importantForAccessibility={accessibilityLabel ? 'yes' : 'no'}
+      accessibilityElementsHidden={!accessibilityLabel}
     />
   )
 }

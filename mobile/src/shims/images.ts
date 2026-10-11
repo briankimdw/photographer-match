@@ -110,7 +110,9 @@ export async function readCameraSettings(file: PickedPhoto) {
 export async function prepareUpload(asset: PickedPhoto) {
   const original: any = await blobOf(asset.uri)
   original.name = nameOf(asset)
-  if (!original.type && typeOf(asset)) original.type = typeOf(asset)
+  // RN's Blob.type is a getter with no setter: plain assignment throws in strict mode,
+  // so shadow it with an own property (what portfolio.js reads as the upload's content type).
+  if (!original.type && typeOf(asset)) Object.defineProperty(original, 'type', { value: typeOf(asset), configurable: true, enumerable: true })
   const [display, settings] = await Promise.all([makeDisplayCopy(asset), readCameraSettings(asset)])
   return { file: original as Blob & { name: string }, display, settings }
 }

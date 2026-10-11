@@ -49,12 +49,14 @@ export function AvailabilityStrip({ free, providerId, selected, onSelect, pendin
             disabled={busy || !onSelect}
             onPress={() => onSelect?.(key)}
             style={[s.day, busy && s.busy, on && s.on]}
-            accessibilityRole={onSelect ? 'button' : undefined}
+            accessibilityRole={onSelect ? 'button' : 'text'}
             accessibilityLabel={`${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}: ${!freeSet ? 'loading' : busy ? 'not available' : 'available'}`}
+            accessibilityState={onSelect ? { selected: on, disabled: busy } : undefined}
           >
-            <Text variant="tiny" style={{ color: on ? c.onInk : c.muted, fontSize: 11 }}>{DAYS[d.getDay()]}</Text>
+            <Text variant="tiny" style={{ color: on ? c.onInk : c.muted, fontSize: 11 }} maxFontSizeMultiplier={1.3}>{DAYS[d.getDay()]}</Text>
             <Text
               weight="700"
+              maxFontSizeMultiplier={1.3}
               style={{ fontSize: 15, color: on ? c.onInk : busy ? c.faint : c.ink, textDecorationLine: busy ? 'line-through' : 'none' }}
             >
               {d.getDate()}

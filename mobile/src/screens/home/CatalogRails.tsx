@@ -35,7 +35,8 @@ export function VerticalRail({ counts }: { counts?: Map<string, number> | null }
                   accessibilityLabel={`${v.name}${counts ? (n ? `, ${n} available` : ', coming soon') : ''}`}
                 >
                   <VerticalIcon name={v.icon} tint={v.tint} size={22} bubble bubbleSize={52} />
-                  <Text variant="tiny" weight="600" center numberOfLines={2} style={s.label}>{v.name}</Text>
+                  {/* Fixed-width grid cells: past 1.3x, "Photography" would break mid-word. */}
+                  <Text variant="tiny" weight="600" center numberOfLines={2} style={s.label} maxFontSizeMultiplier={1.3}>{v.name}</Text>
                 </Pressable>
               )
             })}
@@ -59,7 +60,7 @@ export function OccasionRail() {
             onPress={() => router.push(`/occasions/${o.slug}`)}
             style={({ pressed }) => [s.occasion, { backgroundColor: `${o.tint}14` }, pressed && s.pressed]}
             accessibilityRole="button"
-            accessibilityLabel={o.name}
+            accessibilityLabel={`${o.name}, ${o.needs.length} vendor types`}
           >
             <VerticalIcon name={o.icon} tint={o.tint} size={18} bubble bubbleSize={40} />
             <Text variant="small" weight="700" numberOfLines={1}>{o.name}</Text>

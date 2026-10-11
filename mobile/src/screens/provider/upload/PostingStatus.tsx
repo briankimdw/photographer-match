@@ -34,7 +34,7 @@ export function Posting({ items, perPhoto, kindLabel }: { items: PhotoItem[]; pe
       <Text variant="small" muted center>
         {done === items.length ? 'Finishing up…' : items.length > 1 ? `Uploading photo ${Math.min(done + 1, items.length)} of ${items.length}` : 'Uploading'} · {pct}%
       </Text>
-      <View style={s.bar} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: pct }}>
+      <View style={s.bar} accessibilityRole="progressbar" accessibilityLabel="Posting" accessibilityValue={{ min: 0, max: 100, now: pct }}>
         <View style={[s.barFill, { width: `${Math.max(2, pct)}%` }]} />
       </View>
       {items.length > 1 && (
@@ -64,7 +64,7 @@ export function Posted({ cover, kindLabel, providerId, albumId, onAnother }: { c
   const router = useRouter()
   return (
     <View style={s.wrap}>
-      <View style={[s.check, { backgroundColor: c.ok }]}><Check size={30} strokeWidth={3} color="#fff" /></View>
+      <View style={[s.check, { backgroundColor: c.ok }]}><Check size={30} strokeWidth={3} color={c.onAccent} /></View>
       <Text variant="h3" center>Posted</Text>
       <Text variant="small" muted center>Your {kindLabel} is live on your profile.</Text>
       {!!cover && <Photo uri={cover} style={s.result} />}

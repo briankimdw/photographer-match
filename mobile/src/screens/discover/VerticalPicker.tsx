@@ -5,23 +5,26 @@ import { Check, ChevronDown } from 'lucide-react-native'
 import { Pressable, View } from 'react-native'
 
 import { Loading, Sheet, Text, VerticalIcon } from '@/components'
-import { makeStyles, useTheme } from '@/theme'
+import { makeStyles, useReadableTint, useTheme } from '@/theme'
 import type { Vertical } from '@/types'
 
 export type PickableVertical = Vertical & { count: number }
 
 export function VerticalPickerChip({ vertical, onPress }: { vertical: Vertical; onPress: () => void }) {
   const s = useStyles()
+  const readable = useReadableTint()
+  const ink = readable(vertical.tint, 5) // 5:1 against the page, so 4.5:1+ on the 10% tinted chip
   return (
     <Pressable
       onPress={onPress}
       style={[s.chip, { borderColor: `${vertical.tint}4d`, backgroundColor: `${vertical.tint}1a` }]}
       accessibilityRole="button"
-      accessibilityLabel={`Showing ${vertical.name}. Change`}
+      accessibilityLabel={`Showing ${vertical.name}`}
+      accessibilityHint="Choose another kind of work"
     >
-      <VerticalIcon name={vertical.icon} size={14} color={vertical.tint} />
-      <Text variant="small" weight="600" style={{ color: vertical.tint }}>{vertical.name}</Text>
-      <ChevronDown size={14} color={vertical.tint} />
+      <VerticalIcon name={vertical.icon} size={14} color={ink} />
+      <Text variant="small" weight="600" style={{ color: ink }} maxFontSizeMultiplier={1.6}>{vertical.name}</Text>
+      <ChevronDown size={14} color={ink} />
     </Pressable>
   )
 }

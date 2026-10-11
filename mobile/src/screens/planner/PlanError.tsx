@@ -3,7 +3,10 @@
 import { PlugZap, TriangleAlert } from 'lucide-react-native'
 import { View } from 'react-native'
 
+import { useEffect } from 'react'
+
 import { Button, SignInPrompt, Text } from '@/components'
+import { announce } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 
 export type PlanErr = Error & { kind?: 'offline' | 'auth' | 'server'; status?: number | null }
@@ -11,6 +14,9 @@ export type PlanErr = Error & { kind?: 'offline' | 'auth' | 'server'; status?: n
 export default function PlanError({ error, onRetry }: { error: PlanErr | null; onRetry?: () => void }) {
   const s = useStyles()
   const { c, scheme } = useTheme()
+  useEffect(() => {
+    if (error && error.kind !== 'auth') announce(error.kind === 'offline' ? 'The planner isn’t running' : 'That didn’t work')
+  }, [error])
   if (error?.kind === 'auth') {
     return <SignInPrompt title="Sign in again to keep planning" text="Your session ended. Sign in again, then send that message once more." />
   }

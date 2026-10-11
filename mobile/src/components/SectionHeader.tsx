@@ -11,12 +11,12 @@ export function SectionHeader({ title, sub, onSeeAll, seeAllLabel = 'See all' }:
   return (
     <View style={s.head}>
       <View style={s.grow}>
-        <Text variant="h4" style={{ fontSize: 16 }}>{title}</Text>
+        <Text variant="h4" style={{ fontSize: 16 }} accessibilityRole="header">{title}</Text>
         {!!sub && <Text variant="tiny" muted>{sub}</Text>}
       </View>
       {onSeeAll && (
-        <Pressable onPress={onSeeAll} hitSlop={8} style={s.link} accessibilityRole="link" accessibilityLabel={`${seeAllLabel}: ${title}`}>
-          <Text variant="small" muted>{seeAllLabel}</Text>
+        <Pressable onPress={onSeeAll} hitSlop={{ top: 13, bottom: 13, left: 10, right: 10 }} style={s.link} accessibilityRole="link" accessibilityLabel={`${seeAllLabel}: ${title}`}>
+          <Text variant="small" muted maxFontSizeMultiplier={1.6}>{seeAllLabel}</Text>
           <ChevronRight size={14} color={c.muted} />
         </Pressable>
       )}
@@ -25,7 +25,7 @@ export function SectionHeader({ title, sub, onSeeAll, seeAllLabel = 'See all' }:
 }
 
 const useStyles = makeStyles((t) => ({
-  head: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', paddingHorizontal: t.space.lg, paddingBottom: 10, paddingTop: 22 },
+  head: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, paddingHorizontal: t.space.lg, paddingBottom: 10, paddingTop: 22 },
   grow: { flex: 1 },
   link: { flexDirection: 'row', alignItems: 'center', gap: 2 },
 }))

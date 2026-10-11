@@ -6,11 +6,13 @@ import { Pressable, View } from 'react-native'
 
 import { fmtKm } from '@shared/api/locations.js'
 import { fromPriceLabel } from '@shared/lib/format.js'
-import { makeStyles, useTheme } from '@/theme'
+import { useFocusOnShow } from '@/lib/a11y'
+import { makeStyles, useTheme, useReadableTint } from '@/theme'
 import type { Provider } from '@/types'
 import { Avatar } from '../Avatar'
-import { IdVerified, ProBadge, RatingInline } from '../Badges'
+import { IdVerified, InA11yGroup, ProBadge, RatingInline } from '../Badges'
 import { Button } from '../Button'
+import { providerA11yLabel } from '../ProviderCard'
 import { Text } from '../Text'
 import { VerticalIcon } from '../VerticalIcon'
 
@@ -27,14 +29,26 @@ export function MapProviderCard({ provider: p, dates, showVertical, onClose, flo
   const tint = p.verticalInfo?.tint || c.accent
   const params = dates ? { dates } : {}
   const openProfile = () => router.push({ pathname: '/u/[id]', params: { id: p.id, ...params } })
+  const readable = useReadableTint()
+  // Tapping a pin moves the screen-reader cursor to this card.
+  const focusRef = useFocusOnShow(true, 500)
+  const area = `${p.city ? `${p.city.split(',')[0]}, ` : ''}travels up to ${p.radiusKm ?? 0} km${p.distanceKm != null ? `, ${fmtKm(p.distanceKm)} from you` : ''}${inside != null ? `, ${inside ? 'travels to you' : 'outside their area'}` : ''}`
   return (
-    <View style={[s.card, floating && s.floating]} accessibilityLabel={p.name}>
+    <InA11yGroup value>
+    <View style={[s.card, floating && s.floating]}>
       {onClose && (
-        <Pressable onPress={onClose} style={s.close} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close">
+        <Pressable onPress={onClose} style={s.close} hitSlop={12} accessibilityRole="button" accessibilityLabel={`Close ${p.name}`}>
           <X size={16} color={c.muted} />
         </Pressable>
       )}
-      <Pressable onPress={openProfile} style={s.top} accessibilityRole="link">
+      <Pressable
+        ref={focusRef}
+        onPress={openProfile}
+        style={s.top}
+        accessibilityRole="link"
+        accessibilityLabel={providerA11yLabel(p, [showVertical && !(p as any).verticalInfo?.noun && p.verticalInfo?.name])}
+        accessibilityHint="Opens their profile"
+      >
         <Avatar uri={p.avatar} name={p.name} size={48} />
         <View style={s.grow}>
           <View style={s.nameRow}>
@@ -49,13 +63,13 @@ export function MapProviderCard({ provider: p, dates, showVertical, onClose, flo
           {showVertical && p.verticalInfo && (
             <View style={s.meta}>
               <VerticalIcon name={p.verticalInfo.icon} size={12} tint={p.verticalInfo.tint} />
-              <Text variant="tiny" style={{ color: p.verticalInfo.tint }} weight="600">{p.verticalInfo.name}</Text>
+              <Text variant="tiny" style={{ color: readable(p.verticalInfo.tint) }} weight="600">{p.verticalInfo.name}</Text>
             </View>
           )}
           {p.specialties.length > 0 && <Text variant="tiny" muted numberOfLines={1}>{p.specialties.join(' · ')}</Text>}
         </View>
       </Pressable>
-      <View style={s.area}>
+      <View style={s.area} accessible accessibilityLabel={area}>
         <View style={[s.dot, { borderColor: tint, backgroundColor: `${tint}26` }]} />
         <View style={s.grow}>
           <Text variant="tiny">{p.city ? `${p.city.split(',')[0]} · ` : ''}travels up to {p.radiusKm ?? 0} km</Text>
@@ -69,9 +83,10 @@ export function MapProviderCard({ provider: p, dates, showVertical, onClose, flo
       </View>
       <View style={s.actions}>
         <Button title="View profile" variant="ghost" grow onPress={openProfile} />
-        <Button title="Book" variant="accent" grow onPress={() => router.push({ pathname: '/book/[providerId]', params: { providerId: p.id, ...params } })} />
+        <Button title="Book" accessibilityLabel={`Book ${p.name}`} variant="accent" grow onPress={() => router.push({ pathname: '/book/[providerId]', params: { providerId: p.id, ...params } })} />
       </View>
     </View>
+    </InA11yGroup>
   )
 }
 

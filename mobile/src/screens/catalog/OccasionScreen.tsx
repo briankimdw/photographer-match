@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { buildOccasionChecklist, listBrowseProviders, occasionPrompt, readCovered, withArticle, writeCovered } from '@shared/api/home.js'
 import { money } from '@shared/lib/format.js'
 import { getOccasion, unitLabel } from '@shared/verticals/catalog.js'
-import { Button, EmptyState, ErrorState, Loading, Photo, RatingInline, Screen, SectionHeader, Text, VerticalIcon } from '@/components'
+import { Button, EmptyState, ErrorState, InA11yGroup, Loading, Photo, RatingInline, Screen, SectionHeader, Text, VerticalIcon, ratingLabel } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { makeStyles, useTheme } from '@/theme'
 import type { Occasion, Provider, Vertical } from '@/types'
@@ -99,7 +99,7 @@ function OccasionPage({ o }: { o: Occasion }) {
               <Text variant="tiny" weight="700">{done} of {items.length} covered</Text>
               {done === items.length && <Text variant="tiny" weight="700" color="ok">All set</Text>}
             </View>
-            <View style={[s.bar, { borderColor: `${o.tint}2e` }]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: items.length, now: done }}>
+            <View style={[s.bar, { borderColor: `${o.tint}2e` }]} accessibilityRole="progressbar" accessibilityLabel="Checklist progress" accessibilityValue={{ min: 0, max: items.length, now: done }}>
               <View style={[s.fill, { width: `${items.length ? (done / items.length) * 100 : 0}%`, backgroundColor: o.tint }]} />
             </View>
           </View>
@@ -151,12 +151,17 @@ function OccasionPage({ o }: { o: Occasion }) {
                       hitSlop={8}
                       style={s.checkHit}
                       accessibilityRole="checkbox"
-                      accessibilityState={{ checked: on }}
+                      accessibilityState={{ checked: on }} aria-checked={on}
                       accessibilityLabel={`${v.name}: ${on ? 'covered' : 'mark as covered'}`}
                     >
-                      <View style={[s.check, on && s.checkOn]}>{on && <Check size={14} strokeWidth={3} color="#fff" />}</View>
+                      <View style={[s.check, on && s.checkOn]}>{on && <Check size={14} strokeWidth={3} color={c.onAccent} />}</View>
                     </Pressable>
-                    <Pressable onPress={() => router.push(`/services/${v.slug}`)} style={s.itemLink} accessibilityRole="link">
+                    <Pressable
+                      onPress={() => router.push(`/services/${v.slug}`)}
+                      style={s.itemLink}
+                      accessibilityRole="link"
+                      accessibilityLabel={[v.name, on && 'covered', it.count ? `${it.count} available` : 'coming soon', it.minPrice != null && `from ${money(it.minPrice)}${unit ? ` ${unit}` : ''}`].filter(Boolean).join(', ')}
+                    >
                       <VerticalIcon name={v.icon} tint={v.tint} size={17} bubble bubbleSize={36} />
                       <View style={s.grow}>
                         <Text variant="body" weight="600" muted={on} style={on ? s.struck : undefined}>{v.name}</Text>
@@ -173,11 +178,13 @@ function OccasionPage({ o }: { o: Occasion }) {
                   {it.count > 0 && !on && (
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.vendors} style={s.vendorRail}>
                       {it.top.map((p) => (
-                        <Pressable key={p.id} onPress={() => router.push(`/u/${p.id}`)} style={s.vendor} accessibilityRole="link" accessibilityLabel={p.name}>
+                        <InA11yGroup key={p.id} value>
+                        <Pressable key={p.id} onPress={() => router.push(`/u/${p.id}`)} style={s.vendor} accessibilityRole="link" accessibilityLabel={`${p.name}, ${ratingLabel(p.rating)}`}>
                           <Photo uri={p.cover} vertical={p.vertical} style={s.vendorImg} />
                           <Text variant="tiny" weight="700" numberOfLines={1}>{p.name}</Text>
                           <RatingInline rating={p.rating} size={11} />
                         </Pressable>
+                        </InA11yGroup>
                       ))}
                     </ScrollView>
                   )}

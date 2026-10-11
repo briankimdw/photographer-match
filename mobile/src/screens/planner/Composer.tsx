@@ -39,7 +39,7 @@ export default function Composer({ value, onChange, onSubmit, busy = false, hero
         <View style={s.replyTo}>
           <CornerDownRight size={14} color={c.muted} />
           <Text variant="tiny" muted numberOfLines={1} style={s.grow}>{replyTo}</Text>
-          <Pressable onPress={onClearReply} hitSlop={8} accessibilityRole="button" accessibilityLabel="Stop replying">
+          <Pressable onPress={onClearReply} hitSlop={15} accessibilityRole="button" accessibilityLabel="Stop replying">
             <X size={14} color={c.muted} />
           </Pressable>
         </View>
@@ -57,11 +57,13 @@ export default function Composer({ value, onChange, onSubmit, busy = false, hero
           onSubmitEditing={hero ? undefined : submit}
           returnKeyType={hero ? 'default' : 'send'}
           accessibilityLabel="Describe your event"
+          maxFontSizeMultiplier={2}
           style={[s.input, hero && s.inputHero]}
         />
         <Pressable
           onPress={submit}
           disabled={!canSend}
+          hitSlop={4}
           style={({ pressed }) => [s.send, !canSend && s.sendOff, pressed && { transform: [{ scale: 0.92 }] }]}
           accessibilityRole="button"
           accessibilityLabel="Send"

@@ -11,7 +11,7 @@ import { Pressable, View } from 'react-native'
 import { makeStyles } from '@/theme'
 import type { Provider } from '@/types'
 import { Avatar } from './Avatar'
-import { IdVerified, ProBadge, RatingInline } from './Badges'
+import { IdVerified, InA11yGroup, ProBadge, RatingInline, ratingLabel } from './Badges'
 import { Photo } from './Photo'
 import { PriceLabel, fromPriceText } from './PriceLabel'
 import { Text } from './Text'
@@ -25,11 +25,30 @@ type Props = {
   meta?: string // extra muted text after the rating (e.g. "· 8 km")
 }
 
+/** What a screen reader says for a provider card, in one go:
+ *  "Golden Spoon Catering, caterer, identity verified, Verified Pro, rated 4.5 out of 5, 12 reviews, from $45 / person, Los Angeles". */
+export function providerA11yLabel(p: Provider, extra: (string | null | undefined | false)[] = []) {
+  const noun = (p as any).verticalInfo?.noun as string | undefined
+  return [
+    p.name,
+    noun,
+    p.idVerified && 'identity verified',
+    p.pro && 'Verified Pro',
+    ratingLabel(p.rating, p.rating != null ? p.reviewCount : undefined),
+    fromPriceText(p),
+    p.city?.split(',')[0],
+    p.tasteMatch != null && `${p.tasteMatch}% taste match`,
+    ...extra,
+  ].filter(Boolean).join(', ')
+}
+
 export function ProviderCard({ provider: p, variant = 'row', onPress, footer, meta }: Props) {
   const s = useStyles()
   const router = useRouter()
   const open = onPress ?? (() => router.push(`/u/${p.id}`))
   const from = fromPriceText(p) // "from $65 / person" or null
+  const label = providerA11yLabel(p, [meta?.replace(/^·\s*/, '')])
+  const hint = 'Opens their profile'
 
   const name = (
     <View style={s.nameRow}>
@@ -42,8 +61,9 @@ export function ProviderCard({ provider: p, variant = 'row', onPress, footer, me
 
   if (variant === 'tile') {
     return (
+      <InA11yGroup value>
       <View>
-        <Pressable onPress={open} style={({ pressed }) => [s.tile, pressed && s.pressed]} accessibilityRole="button" accessibilityLabel={p.name}>
+        <Pressable onPress={open} style={({ pressed }) => [s.tile, pressed && s.pressed]} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}>
           <View>
             <Photo uri={p.cover} vertical={p.vertical} style={s.tileImg} />
             {p.tasteMatch != null && <MatchBadge pct={p.tasteMatch} />}
@@ -59,14 +79,16 @@ export function ProviderCard({ provider: p, variant = 'row', onPress, footer, me
         </Pressable>
         <AddToEventButton provider={p} />
       </View>
+      </InA11yGroup>
     )
   }
 
   if (variant === 'result') {
     const thumbs = p.covers.slice(0, 3)
     return (
+      <InA11yGroup value>
       <View style={s.result}>
-        <Pressable onPress={open} style={({ pressed }) => pressed && s.pressed} accessibilityRole="button" accessibilityLabel={p.name}>
+        <Pressable onPress={open} style={({ pressed }) => pressed && s.pressed} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}>
           {/* Like the web: no work yet (DJs, planners...) = no empty grey strip, just the details. */}
           {thumbs.length > 0 && (
             <View style={s.strip}>
@@ -102,11 +124,13 @@ export function ProviderCard({ provider: p, variant = 'row', onPress, footer, me
         </Pressable>
         {footer}
       </View>
+      </InA11yGroup>
     )
   }
 
   return (
-    <Pressable onPress={open} style={({ pressed }) => [s.row, pressed && s.pressed]} accessibilityRole="button" accessibilityLabel={p.name}>
+    <InA11yGroup value>
+    <Pressable onPress={open} style={({ pressed }) => [s.row, pressed && s.pressed]} accessibilityRole="button" accessibilityLabel={label} accessibilityHint={hint}>
       <Photo uri={p.covers[1] || p.cover} vertical={p.vertical} style={s.rowImg} />
       <View style={s.grow}>
         {name}
@@ -124,14 +148,15 @@ export function ProviderCard({ provider: p, variant = 'row', onPress, footer, me
         </View>
       )}
     </Pressable>
+    </InA11yGroup>
   )
 }
 
 export function MatchBadge({ pct }: { pct: number }) {
   const s = useStyles()
   return (
-    <View style={s.badge}>
-      <Text style={s.badgeText}>{pct}% match</Text>
+    <View style={s.badge} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden /* the card's label says it */>
+      <Text style={s.badgeText} maxFontSizeMultiplier={1.4}>{pct}% match</Text>
     </View>
   )
 }
@@ -162,5 +187,5 @@ const useStyles = makeStyles((t) => ({
   resultInfo: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, padding: 12 },
   // badge
   badge: { position: 'absolute', left: 8, top: 8, backgroundColor: t.c.accent, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999 },
-  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
+  badgeText: { color: t.c.onAccent, fontSize: 11, fontWeight: '700' },
 }))

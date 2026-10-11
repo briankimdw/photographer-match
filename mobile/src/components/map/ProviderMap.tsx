@@ -16,6 +16,7 @@ import { countLabel, nounFor } from '@shared/verticals/index.js'
 import { makeStyles, useTheme } from '@/theme'
 import { Avatar } from '../Avatar'
 import { Button } from '../Button'
+import { providerA11yLabel } from '../ProviderCard'
 import { Text } from '../Text'
 import { boxRegion, circleRegion, includePoint, movedFrom, pointsRegion, regionBox, type Region } from './geo'
 import { MapProviderCard } from './MapProviderCard'
@@ -72,8 +73,18 @@ export default function ProviderMap({
     onAreaChange?.(box)
   }
 
+  const settled = useRef(false)
   const onRegionChangeComplete = (region: Region) => {
     current.current = region
+    // The first report is the map fitting initialRegion to its own aspect ratio (both
+    // platforms do this on load): that's the starting view, not the user moving away.
+    if (!settled.current) {
+      settled.current = true
+      if (!auto.current) {
+        reference.current = region
+        return
+      }
+    }
     const a = auto.current && Date.now() < auto.current.until ? auto.current : null
     auto.current = null
     if (a?.search) return searchRegion(region)
@@ -159,6 +170,8 @@ export default function ProviderMap({
       <MapView
         ref={mapRef}
         style={StyleSheet.absoluteFill}
+        // Screen readers: the pins are reachable one by one, and the List tab has the same results.
+        accessibilityLabel={`Map of ${countLabel(providers.length, vertical)}. Switch to the list for the same results.`}
         userInterfaceStyle={scheme}
         initialRegion={initialRegion}
         onRegionChangeComplete={onRegionChangeComplete}
@@ -198,7 +211,7 @@ export default function ProviderMap({
       </MapView>
 
       {moved && !selected && (
-        <Pressable onPress={() => searchRegion(current.current)} style={s.areaBtn} accessibilityRole="button">
+        <Pressable onPress={() => searchRegion(current.current)} style={s.areaBtn} accessibilityRole="button" accessibilityLabel="Search this area" accessibilityHint="Finds who is based in the part of the map you're looking at">
           <Search size={15} color={c.ink} strokeWidth={2.4} />
           <Text variant="small" weight="700">Search this area</Text>
         </Pressable>
@@ -226,7 +239,7 @@ export default function ProviderMap({
       )}
 
       {!touched && !selected && !areaEmpty && (
-        <View style={s.hint} pointerEvents="none">
+        <View style={s.hint} pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden>
           <Text variant="tiny" weight="600" style={{ color: '#fff' }}>Tap a {nounFor(vertical)} to see how far they travel</Text>
         </View>
       )}
@@ -267,7 +280,8 @@ function Pin({ p, selected, dim, onPress }: { p: ProviderMapProps['providers'][n
       }}
       tracksViewChanges={track}
       zIndex={selected ? 1000 : dim ? 0 : 10}
-      accessibilityLabel={p.name}
+      accessibilityLabel={providerA11yLabel(p, [selected && 'selected', dim && !selected && 'outside the searched area'])}
+      accessibilityRole="button"
     >
       <View style={{ opacity: dim && !selected ? 0.45 : 1, padding: 2 }}>
         <View style={{ borderRadius: 999, borderWidth: 3, borderColor: selected ? c.ink : tint, backgroundColor: '#fff' }}>

@@ -107,7 +107,7 @@ export default function PeoplePicker({ selected, onChange, exclude = [], autoFoc
               onPress={() => toggle(p)}
               style={({ pressed }) => [s.row, pressed && { backgroundColor: c.soft }]}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: on }}
+              accessibilityState={{ checked: on }} aria-checked={on}
               accessibilityLabel={p.name}
             >
               <Avatar uri={p.avatar} name={p.name} />

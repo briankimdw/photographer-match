@@ -117,11 +117,11 @@ function Requests({ bookings }: { bookings: QueryState<any[]> }) {
       {list.map((r) => (
         <Card key={r.id} style={s.card}>
           <View style={s.row}>
-            <Pressable onPress={() => router.push({ pathname: '/u/[id]', params: { id: r.client.id } })}>
+            <Pressable onPress={() => router.push({ pathname: '/u/[id]', params: { id: r.client.id } })} accessibilityRole="link" accessibilityLabel={`${r.client.name}'s profile`}>
               <Avatar uri={r.client.avatar} name={r.client.name} />
             </Pressable>
             <View style={s.grow}>
-              <Text weight="700" onPress={() => router.push({ pathname: '/u/[id]', params: { id: r.client.id } })}>{r.client.name}</Text>
+              <Text weight="700" onPress={() => router.push({ pathname: '/u/[id]', params: { id: r.client.id } })} accessibilityRole="link">{r.client.name}</Text>
               {r.client.rating ? (
                 <View style={s.inline}>
                   <Star size={11} color={c.star} fill={c.star} />
@@ -273,7 +273,7 @@ function ProviderCalendar({ bookings, provider, onProviderChanged }: { bookings:
 
   const cellStyle = (st?: string) =>
     st === 'booked' ? { backgroundColor: c.ink } : st === 'held' ? { backgroundColor: c.accentSoft } : st === 'blackout' ? { backgroundColor: c.soft } : null
-  const cellText = (st?: string) => (st === 'booked' ? c.onInk : st === 'held' ? c.accent : st === 'blackout' ? c.faint : c.ink)
+  const cellText = (st?: string) => (st === 'booked' ? c.onInk : st === 'held' ? c.accentInk : st === 'blackout' ? c.faint : c.ink)
   const shift = (n: number) => setMonth(new Date(year, m + n, 1))
   const hourLines = hoursSummary(hours.data || [])
   const buffer = myProvider?.buffer_minutes
@@ -282,16 +282,16 @@ function ProviderCalendar({ bookings, provider, onProviderChanged }: { bookings:
     <View style={s.mt}>
       <View style={s.between}>
         <View style={s.inline}>
-          <Pressable onPress={() => shift(-1)} hitSlop={8} accessibilityLabel="Previous month" style={s.iconBtn}><ChevronLeft size={18} color={c.ink} /></Pressable>
-          <Text weight="700">{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
-          <Pressable onPress={() => shift(1)} hitSlop={8} accessibilityLabel="Next month" style={s.iconBtn}><ChevronRight size={18} color={c.ink} /></Pressable>
+          <Pressable onPress={() => shift(-1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Previous month" style={s.iconBtn}><ChevronLeft size={18} color={c.ink} /></Pressable>
+          <Text weight="700" accessibilityRole="header" accessibilityLiveRegion="polite">{month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</Text>
+          <Pressable onPress={() => shift(1)} hitSlop={8} accessibilityRole="button" accessibilityLabel="Next month" style={s.iconBtn}><ChevronRight size={18} color={c.ink} /></Pressable>
         </View>
         <Text variant="tiny" muted>Tap a free day to block it</Text>
       </View>
       {blackouts.error && <FormError>Couldn’t load blocked-off days: {blackouts.error.message}</FormError>}
       <View style={s.cal}>
         {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
-          <View key={i} style={s.calCell}><Text variant="tiny" muted weight="600">{d}</Text></View>
+          <View key={i} style={s.calCell} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden><Text variant="tiny" muted weight="600">{d}</Text></View>
         ))}
         {cells.map((d, i) => {
           if (!d) return <View key={i} style={s.calCell} />
@@ -304,7 +304,9 @@ function ProviderCalendar({ bookings, provider, onProviderChanged }: { bookings:
                 onPress={() => toggleBlackout(d)}
                 disabled={past}
                 accessibilityRole="button"
-                accessibilityLabel={`${fmtBooking(d)}${st ? `, ${st === 'held' ? 'pending request' : st === 'blackout' ? 'blocked off' : 'booked'}` : ''}`}
+                accessibilityLabel={`${fmtBooking(d)}${st ? `, ${st === 'held' ? 'pending request' : st === 'blackout' ? 'blocked off' : 'booked'}` : ', free'}`}
+                accessibilityHint={past ? undefined : st === 'blackout' ? 'Double-tap to unblock' : !st ? 'Double-tap to block off' : undefined}
+                accessibilityState={{ disabled: past, busy: busyDay === key }}
                 style={[s.day, cellStyle(st), key === todayKey && s.today, past && s.past]}
               >
                 {busyDay === key ? <ActivityIndicator size="small" color={c.muted} /> : (
@@ -577,7 +579,13 @@ function Portfolio() {
         </Pressable>
         {loading && <View style={[s.tile, s.addTile]}><ActivityIndicator color={c.muted} /></View>}
         {albums?.filter((a) => a.photos?.length).map((a) => (
-          <Pressable key={a.id} onPress={() => router.push({ pathname: '/my-work', params: { post: a.id } })} style={s.tile} accessibilityLabel={a.title}>
+          <Pressable
+            key={a.id}
+            onPress={() => router.push({ pathname: '/my-work', params: { post: a.id } })}
+            style={s.tile}
+            accessibilityRole="button"
+            accessibilityLabel={`${a.title || 'Post'}${a.kind === 'before_after' ? ', before and after' : a.photos.length > 1 ? `, ${a.photos.length} photos` : ''}`}
+          >
             <Photo uri={cover(a)} style={s.tileImg} />
             {a.photos.length > 1 && a.kind !== 'before_after' && (
               <View style={s.count}><Copy size={11} color="#fff" /><Text variant="caption" style={s.white}>{a.photos.length}</Text></View>

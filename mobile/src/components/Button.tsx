@@ -23,10 +23,11 @@ type ButtonProps = {
   loading?: boolean
   style?: StyleProp<ViewStyle>
   accessibilityLabel?: string
+  accessibilityHint?: string
 }
 
 export function Button({
-  title, onPress, variant = 'primary', size = 'md', icon: Icon, iconRight: IconRight, block, grow, disabled, loading, style, accessibilityLabel,
+  title, onPress, variant = 'primary', size = 'md', icon: Icon, iconRight: IconRight, block, grow, disabled, loading, style, accessibilityLabel, accessibilityHint,
 }: ButtonProps) {
   const s = useStyles()
   const { c } = useTheme()
@@ -42,8 +43,10 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled || loading}
+      hitSlop={size === 'sm' ? 5 : undefined}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel ?? title}
+      accessibilityHint={accessibilityHint}
       accessibilityState={{ disabled: !!(disabled || loading), busy: !!loading }}
       style={({ pressed }) => [
         s.base, s[size], s[variant], block && s.block, grow && s.grow, tight && s.tight,
@@ -51,7 +54,8 @@ export function Button({
       ]}
     >
       {loading ? <ActivityIndicator size="small" color={fg} /> : Icon ? <Icon size={iconSize} color={fg} /> : null}
-      <Text variant={size === 'sm' ? 'small' : 'body'} weight="600" style={[{ color: fg, flexShrink: 1 }, tight && size === 'md' && { fontSize: 13.5 }]} numberOfLines={1}>
+      {/* Large text: two lines rather than "Ask a quest…" (one line at the default size). */}
+      <Text variant={size === 'sm' ? 'small' : 'body'} weight="600" style={[{ color: fg, flexShrink: 1 }, tight && size === 'md' && { fontSize: 13.5 }]} numberOfLines={2} maxFontSizeMultiplier={1.6}>
         {title}
       </Text>
       {IconRight ? <IconRight size={iconSize} color={fg} /> : null}
@@ -59,13 +63,27 @@ export function Button({
   )
 }
 
+// Icon-only: `label` is what VoiceOver / TalkBack say. `selected` for on/off icons (Save, Like).
+// 34pt + hitSlop 5 = a 44pt touch target.
 export function IconButton({
-  icon: Icon, onPress, label, color, size = 22, filled, style,
-}: { icon: LucideIcon; onPress?: () => void; label: string; color?: string; size?: number; filled?: boolean; style?: StyleProp<ViewStyle> }) {
+  icon: Icon, onPress, label, hint, selected, disabled, color, size = 22, filled, style,
+}: {
+  icon: LucideIcon; onPress?: () => void; label: string; hint?: string; selected?: boolean; disabled?: boolean
+  color?: string; size?: number; filled?: boolean; style?: StyleProp<ViewStyle>
+}) {
   const { c } = useTheme()
   const tint = color ?? c.ink
   return (
-    <Pressable onPress={onPress} hitSlop={8} accessibilityRole="button" accessibilityLabel={label} style={({ pressed }) => [{ padding: 6, borderRadius: 999, opacity: pressed ? 0.6 : 1 }, style]}>
+    <Pressable
+      onPress={onPress}
+      disabled={disabled}
+      hitSlop={Math.max(5, (44 - size - 12) / 2)}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={selected != null || disabled ? { selected, disabled: !!disabled } : undefined}
+      style={({ pressed }) => [{ padding: 6, borderRadius: 999, opacity: disabled ? 0.4 : pressed ? 0.6 : 1 }, style]}
+    >
       <View>
         <Icon size={size} color={tint} fill={filled ? tint : 'none'} />
       </View>
@@ -86,6 +104,6 @@ const useStyles = makeStyles((t) => ({
   block: { alignSelf: 'stretch' },
   grow: { flex: 1, alignSelf: 'auto' },
   tight: { paddingHorizontal: 8, gap: 5 },
-  disabled: { opacity: 0.4 },
+  disabled: { opacity: 0.45 },
   pressed: { opacity: 0.8, transform: [{ scale: 0.98 }] },
 }))

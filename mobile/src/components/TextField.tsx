@@ -27,7 +27,7 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
     <View style={containerStyle}>
       {(label || labelRight) && (
         <View style={s.labelRow}>
-          {!!label && <Text variant="small" muted>{label}</Text>}
+          {!!label && <Text variant="small" muted importantForAccessibility="no" accessibilityElementsHidden>{label}</Text>}
           {labelRight}
         </View>
       )}
@@ -40,11 +40,14 @@ export const TextField = forwardRef<TextInput, Props>(function TextField(
           placeholderTextColor={c.faint}
           keyboardAppearance={scheme}
           cursorColor={c.ink}
+          maxFontSizeMultiplier={2}
           style={[s.input, style]}
+          // The visible label is a separate Text: name the field after it (or the placeholder).
+          accessibilityLabel={label ?? rest.placeholder}
           {...rest}
         />
         {clearable && !!value && (
-          <Pressable onPress={() => onChangeText?.('')} hitSlop={8} accessibilityRole="button" accessibilityLabel="Clear">
+          <Pressable onPress={() => onChangeText?.('')} hitSlop={15} accessibilityRole="button" accessibilityLabel={label ? `Clear ${label}` : 'Clear text'}>
             <X size={14} color={c.muted} />
           </Pressable>
         )}

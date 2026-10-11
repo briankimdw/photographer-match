@@ -1,5 +1,6 @@
 // Leave / read the reviews for a booking: native version of frontend/src/screens/Review.jsx.
 // Reviews are double-blind: neither side sees the other's until both post or 14 days pass.
+import { callName } from '@shared/lib/format.js'
 import { bookingError, getBooking, submitReview } from '@shared/api/bookings.js'
 import { sessionNoun } from '@shared/verticals/index.js'
 import { useLocalSearchParams, useRouter } from 'expo-router'
@@ -39,10 +40,22 @@ export default function Review() {
 function StarInput({ value, onChange, size = 36 }: { value: number; onChange: (n: number) => void; size?: number }) {
   const { c } = useTheme()
   return (
-    <View style={{ flexDirection: 'row', gap: 4 }} accessibilityRole="adjustable" accessibilityLabel={`Rating: ${value} of 5`}>
+    // One "adjustable" element for screen readers: swipe up / down to change the rating.
+    <View
+      style={{ flexDirection: 'row', gap: 4 }}
+      accessible
+      accessibilityRole="adjustable"
+      accessibilityLabel="Rating"
+      accessibilityValue={{ min: 0, max: 5, now: value, text: value ? `${value} of 5 stars` : 'Not rated yet' }}
+      accessibilityActions={[{ name: 'increment' }, { name: 'decrement' }]}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'increment') onChange(Math.min(5, value + 1))
+        if (e.nativeEvent.actionName === 'decrement') onChange(Math.max(1, value - 1))
+      }}
+    >
       {[1, 2, 3, 4, 5].map((n) => (
-        <Pressable key={n} onPress={() => onChange(n)} hitSlop={4} accessibilityRole="button" accessibilityLabel={`${n} star${n > 1 ? 's' : ''}`}>
-          <Star size={size} color={n <= value ? c.star : c.line} fill={n <= value ? c.star : 'none'} />
+        <Pressable key={n} onPress={() => onChange(n)} hitSlop={4} accessible={false} importantForAccessibility="no">
+          <Star size={size} color={n <= value ? c.star : c.faint} fill={n <= value ? c.star : 'none'} />
         </Pressable>
       ))}
     </View>
@@ -55,11 +68,12 @@ function ReviewView({ b, reload }: { b: Booking; reload: () => void }) {
   const { toast } = useStore()
   const isClient = b.role === 'client'
   const other = isClient ? b.provider : b.client
-  const first = (other.name || '').split(' ')[0] || (isClient ? 'your vendor' : 'your client')
+  const first = (other as any).shortName || callName(other.name || '') || (isClient ? 'your vendor' : 'your client')
   const [rating, setRating] = useState(0)
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
-  const backToBooking = () => router.push({ pathname: '/bookings/[id]', params: { id: b.id } })
+  // Back to the booking already in the stack (opened from it) instead of stacking a second copy.
+  const backToBooking = () => router.dismissTo({ pathname: '/bookings/[id]', params: { id: b.id } })
 
   const submit = async () => {
     setBusy(true)

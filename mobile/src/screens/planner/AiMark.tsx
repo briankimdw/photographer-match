@@ -14,7 +14,7 @@ export function AiMark({ icon: Icon = Sparkles, size = 30 }: { icon?: LucideIcon
         ...(size >= 50 ? { shadowColor: c.accent, shadowOpacity: 0.28, shadowRadius: 12, shadowOffset: { width: 0, height: 8 }, elevation: 4 } : null),
       }}
     >
-      <Icon size={Math.round(size * 0.48)} color="#fff" />
+      <Icon size={Math.round(size * 0.48)} color={c.onAccent} />
     </View>
   )
 }

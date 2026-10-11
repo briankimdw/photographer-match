@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 import { getProvider } from '@shared/api/catalog.js'
 import { listAlbums, toViewerAlbum } from '@shared/api/portfolio.js'
-import { money, startingPrice } from '@shared/lib/format.js'
+import { callName, money, startingPrice } from '@shared/lib/format.js'
 import { Button, EmptyState, ErrorState, Loading } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
@@ -61,7 +61,7 @@ export default function Gallery() {
         albums={albums}
         owner={{ name: p.name, avatar: p.avatar, idVerified: p.idVerified, pro: p.pro, username: p.username, providerId: p.id }}
         book={isMine ? null : {
-          label: `Book ${p.name.split(' ')[0]}`,
+          label: `Book ${(p as any).shortName || callName(p.name)}`,
           line: `${from != null ? `from ${money(from)}` : 'Custom quote'} · ${p.rating != null ? `★ ${p.rating.toFixed(1)}` : 'New'}`,
           onPress: () => router.push({ pathname: '/book/[providerId]', params: { providerId: p.id } }),
           onLine: () => router.push({ pathname: '/u/[id]', params: { id: p.id, tab: p.rating != null ? 'reviews' : 'packages' } }),

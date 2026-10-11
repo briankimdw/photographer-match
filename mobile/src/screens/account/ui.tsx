@@ -2,10 +2,11 @@
 // .list-row, .settings-group, .section-label, .callout, .round-icon, .toggle-row,
 // .field-hint / .form-error).
 import { ChevronRight, type LucideIcon } from 'lucide-react-native'
-import { Children, type ReactNode } from 'react'
+import { Children, useEffect, type ReactNode } from 'react'
 import { Pressable, Switch, View, type StyleProp, type ViewStyle } from 'react-native'
 
 import { Text } from '@/components'
+import { announce } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 
 export function SectionLabel({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
@@ -106,9 +107,11 @@ export function ToggleRow({ label, sub, value, onChange, disabled }: { label: st
         value={value}
         onValueChange={onChange}
         disabled={disabled}
-        trackColor={{ true: c.accent, false: c.line }}
+        // Off track in `faint`, not `line`: the switch's outline needs 3:1 against the page.
+        trackColor={{ true: c.accent, false: c.faint }}
         thumbColor="#ffffff"
         accessibilityLabel={label}
+        accessibilityHint={sub}
       />
     </View>
   )
@@ -120,7 +123,15 @@ export function Callout({ children, tone = 'soft', style }: { children: ReactNod
   return <View style={[s.callout, s[tone], style]}>{children}</View>
 }
 
+// The plain text of a message (strings and numbers in children), for announcing it.
+const textOf = (children: ReactNode) =>
+  Children.toArray(children).filter((x) => typeof x === 'string' || typeof x === 'number').join('')
+
 export function FieldHint({ children, error }: { children: ReactNode; error?: boolean }) {
+  const msg = error ? textOf(children) : ''
+  useEffect(() => {
+    if (msg) announce(msg)
+  }, [msg])
   return (
     <Text variant="tiny" color={error ? 'danger' : 'muted'} style={{ marginTop: 4 }} accessibilityRole={error ? 'alert' : undefined}>
       {children}
@@ -128,8 +139,13 @@ export function FieldHint({ children, error }: { children: ReactNode; error?: bo
   )
 }
 
+// Errors are spoken when they appear (accessibilityRole "alert" alone isn't announced on iOS).
 export function FormError({ children }: { children: ReactNode }) {
   const s = useStyles()
+  const msg = textOf(children)
+  useEffect(() => {
+    if (msg) announce(msg)
+  }, [msg])
   return (
     <View style={s.formError} accessibilityRole="alert">
       <Text variant="small" color="danger">{children}</Text>

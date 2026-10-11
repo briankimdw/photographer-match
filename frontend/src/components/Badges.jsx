@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ShieldCheck, BadgeCheck, Camera } from 'lucide-react'
 import Sheet from './Sheet.jsx'
+import { callName } from '../lib/format.js'
 
 // Badges are plain labels by default. Pass `explain` (only where the badge is not inside
 // another link) to make a tap open a short "what this means" sheet.
@@ -63,7 +64,7 @@ function ExplainBadge({ kind, className, name, children }) {
   const [open, setOpen] = useState(false)
   const info = EXPLAIN[kind]
   const Icon = info.icon
-  const who = name ? name.split(' ')[0] : 'This vendor'
+  const who = name ? callName(name) : 'This vendor'
   return (
     <>
       <button

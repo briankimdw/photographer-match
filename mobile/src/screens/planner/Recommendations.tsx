@@ -9,7 +9,7 @@ import { CalendarCheck, CalendarX, Check, Heart, Images, MapPin, Palette, Search
 import type { ReactNode } from 'react'
 import { Pressable, View } from 'react-native'
 
-import { Avatar, Button, IconButton, IdVerified, Photo, ProBadge, RatingInline, Text, VerticalIcon } from '@/components'
+import { Avatar, Button, IconButton, IdVerified, InA11yGroup, Photo, ProBadge, RatingInline, Text, VerticalIcon, providerA11yLabel } from '@/components'
 import { useStore } from '@/state/store'
 import { makeStyles, useTheme } from '@/theme'
 import type { Package, Provider } from '@/types'
@@ -108,7 +108,8 @@ function OptionCard({ option: o, p, brief, budgetCents, top }: { option: PlanOpt
       )}
       <View style={s.body}>
         <View style={s.rowCenter}>
-          <Pressable onPress={profile} style={[s.rowCenter, s.grow]} accessibilityRole="link" accessibilityLabel={p.name}>
+          <InA11yGroup value>
+          <Pressable onPress={profile} style={[s.rowCenter, s.grow]} accessibilityRole="link" accessibilityLabel={providerA11yLabel(p)}>
             <Avatar uri={p.avatar} name={p.name} size="md" />
             <View style={s.grow}>
               <View style={s.nameRow}>
@@ -122,6 +123,7 @@ function OptionCard({ option: o, p, brief, budgetCents, top }: { option: PlanOpt
               </View>
             </View>
           </Pressable>
+          </InA11yGroup>
           {!covers.length && top && <View style={[s.topPick, s.topPickInline]}><Text style={s.topPickText}>Top pick</Text></View>}
           <IconButton
             icon={Heart}

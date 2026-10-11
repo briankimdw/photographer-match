@@ -6,10 +6,12 @@ import { Modal, Pressable, ScrollView, View } from 'react-native'
 
 import { listProviders } from '@shared/api/catalog.js'
 import { getTasteProfile } from '@shared/api/discover.js'
-import { money, priceLabel, startingPrice } from '@shared/lib/format.js'
+import { callName, money, priceLabel, startingPrice } from '@shared/lib/format.js'
 import {
-  AvailabilityStrip, Avatar, Button, Chip, ChipRow, EmptyState, ErrorState, IdVerified, Loading, Photo, ProBadge, Sheet, Text,
+  AvailabilityStrip, Avatar, Button, Chip, ChipRow, EmptyState, ErrorState, IdVerified, InA11yGroup, Loading, Photo, ProBadge, Sheet, Text,
+  providerA11yLabel,
 } from '@/components'
+import { useFocusOnShow, IMAGE_BUTTON_ROLE } from '@/lib/a11y'
 import useQuery from '@/hooks/useQuery'
 import { makeStyles, useTheme } from '@/theme'
 import type { Package, Provider } from '@/types'
@@ -36,8 +38,8 @@ export function DetailsSheet({ card, shot, match, open, onClose, onMessage }: De
       {card && p && (
         <>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.shots}>
-            {card.photos.map((ph) => (
-              <Pressable key={ph.id} onPress={() => go(gallery(p.id, card.albumId, ph.id))} accessibilityRole="imagebutton" accessibilityLabel="Open in the gallery">
+            {card.photos.map((ph, i) => (
+              <Pressable key={ph.id} onPress={() => go(gallery(p.id, card.albumId, ph.id))} accessibilityRole={IMAGE_BUTTON_ROLE} accessibilityLabel={`Photo ${i + 1} of ${card.photos.length}, open in the gallery`}>
                 <Photo uri={ph.src} style={s.shot} />
               </Pressable>
             ))}
@@ -47,7 +49,8 @@ export function DetailsSheet({ card, shot, match, open, onClose, onMessage }: De
             <Text variant="small" weight="600">View the full album</Text>
           </Pressable>
 
-          <Pressable onPress={() => go(`/u/${p.id}`)} style={s.person} accessibilityRole="link">
+          <InA11yGroup value>
+          <Pressable onPress={() => go(`/u/${p.id}`)} style={s.person} accessibilityRole="link" accessibilityLabel={providerA11yLabel({ ...p, tasteMatch: match } as Provider)} accessibilityHint="Opens their profile">
             <Avatar uri={p.avatar} name={p.name} size="md" />
             <View style={s.grow}>
               <View style={s.inline0}>
@@ -62,6 +65,7 @@ export function DetailsSheet({ card, shot, match, open, onClose, onMessage }: De
             </View>
             {match != null && <MatchPct pct={match} />}
           </Pressable>
+          </InA11yGroup>
 
           {!!card.reason && (
             <View style={s.note}>
@@ -172,7 +176,7 @@ export function TasteSheet({ open, onClose, uid, corrections, removeCorrection, 
           <View style={s.mt}>
             {t.styles.length === 0 && <Text variant="small" muted>Like a few photos and the styles you like will show up here.</Text>}
             {t.styles.map((st) => (
-              <View key={st.tag} style={s.tasteRow}>
+              <View key={st.tag} style={s.tasteRow} accessible accessibilityLabel={`${st.tag}, ${Math.round(st.weight * 100)}%`}>
                 <Text variant="small" style={s.tasteTag} numberOfLines={1}>{st.tag}</Text>
                 <View style={s.tasteBar}><View style={[s.tasteFill, { width: `${st.weight * 100}%` }]} /></View>
               </View>
@@ -181,7 +185,7 @@ export function TasteSheet({ open, onClose, uid, corrections, removeCorrection, 
           <Text variant="h4" style={s.section}>Showing you less</Text>
           {corrections.length === 0 && <Text variant="small" muted>Nothing yet. Tap the thumbs-down on a photo to see less of a style.</Text>}
           <ChipRow>
-            {corrections.map((tag) => <Chip key={tag} label={tag} iconRight={X} onPress={() => removeCorrection(tag)} />)}
+            {corrections.map((tag) => <Chip key={tag} label={tag} iconRight={X} onPress={() => removeCorrection(tag)} accessibilityLabel={`${tag}, hidden`} accessibilityHint="Double-tap to show it again" />)}
           </ChipRow>
           <View style={[s.note, s.mt]}>
             <Compass size={14} color={c.ink} />
@@ -233,7 +237,14 @@ export function ShortlistSheet({ open, onClose, uid, shortlist, likedCardsFrom, 
           const from = startingPrice(sp)
           return (
             <View key={sp.id} style={s.shortItem}>
-              <Pressable onPress={() => go(`/u/${sp.id}`)} style={s.person0} accessibilityRole="link">
+              <InA11yGroup value>
+              <Pressable
+                onPress={() => go(`/u/${sp.id}`)}
+                style={s.person0}
+                accessibilityRole="link"
+                accessibilityLabel={providerA11yLabel({ ...sp, tasteMatch: m } as Provider, [liked.length > 0 && `you liked ${liked.length} shot${liked.length > 1 ? 's' : ''}`])}
+                accessibilityHint="Opens their profile"
+              >
                 <Avatar uri={sp.avatar} name={sp.name} size="md" />
                 <View style={s.grow}>
                   <View style={s.inline0}>
@@ -250,10 +261,11 @@ export function ShortlistSheet({ open, onClose, uid, shortlist, likedCardsFrom, 
                 </View>
                 {m != null && <MatchPct pct={m} />}
               </Pressable>
+              </InA11yGroup>
               {shots.length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.shortShots}>
-                  {shots.map((sh: { key: string; src?: string; to: any }) => (
-                    <Pressable key={sh.key} onPress={() => go(sh.to)} accessibilityRole="imagebutton" accessibilityLabel="Open in the gallery">
+                  {shots.map((sh: { key: string; src?: string; to: any }, i: number) => (
+                    <Pressable key={sh.key} onPress={() => go(sh.to)} accessibilityRole={IMAGE_BUTTON_ROLE} accessibilityLabel={`${sp.name}, photo ${i + 1} of ${shots.length}, open in the gallery`}>
                       <Photo uri={sh.src} style={s.shortShot} />
                     </Pressable>
                   ))}
@@ -263,7 +275,7 @@ export function ShortlistSheet({ open, onClose, uid, shortlist, likedCardsFrom, 
                 <Button title="Profile" size="sm" variant="ghost" grow onPress={() => go(`/u/${sp.id}`)} />
                 <Button title="Message" size="sm" variant="ghost" grow onPress={() => onMessage(sp.id)} />
                 <Button title="Book" size="sm" grow onPress={() => go({ pathname: '/book/[providerId]', params: { providerId: sp.id } })} />
-                <Pressable onPress={() => onRemove(sp.id)} style={s.remove} accessibilityRole="button" accessibilityLabel={`Remove ${sp.name} from shortlist`}>
+                <Pressable onPress={() => onRemove(sp.id)} style={s.remove} hitSlop={5} accessibilityRole="button" accessibilityLabel={`Remove ${sp.name} from shortlist`}>
                   <X size={14} color={c.ink} />
                 </Pressable>
               </View>
@@ -285,8 +297,9 @@ type MatchProps = {
 export function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortlisted, onShortlist, onClose, onMessage, onSignIn }: MatchProps) {
   const s = useStyles()
   const router = useRouter()
+  const titleRef = useFocusOnShow(!!provider, 450)
   if (!provider) return null
-  const first = provider.name.split(' ')[0]
+  const first = (provider as any).shortName || callName(provider.name)
   const from = startingPrice(provider)
   const go = (to: Parameters<typeof router.push>[0]) => {
     onClose()
@@ -294,11 +307,12 @@ export function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortliste
   }
   return (
     <Modal visible transparent animationType="fade" onRequestClose={onClose} statusBarTranslucent>
-      <Pressable style={s.overlay} onPress={onClose} accessibilityRole="button" accessibilityLabel="Keep swiping">
-        <Pressable style={s.matchCard} onPress={() => {}}>
+      {/* The dimmed backdrop closes it on tap; screen readers use "Keep swiping" or the escape gesture. */}
+      <Pressable style={s.overlay} onPress={onClose} accessible={false} importantForAccessibility="no">
+        <Pressable style={s.matchCard} onPress={() => {}} accessible={false} accessibilityViewIsModal onAccessibilityEscape={onClose}>
           <View style={s.matchShots}>
             {cards.slice(0, 2).map((cd, i) => (
-              <Pressable key={cd.id} onPress={() => go(gallery(provider.id, cd.albumId))} style={[s.matchShot, i ? s.matchRight : s.matchLeft]} accessibilityRole="imagebutton">
+              <Pressable key={cd.id} onPress={() => go(gallery(provider.id, cd.albumId))} style={[s.matchShot, i ? s.matchRight : s.matchLeft]} accessibilityRole={IMAGE_BUTTON_ROLE} accessibilityLabel={`A ${first} photo you liked, open in the gallery`}>
                 <Photo uri={cd.photos[0]?.src} style={s.matchImg} />
               </Pressable>
             ))}
@@ -306,7 +320,7 @@ export function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortliste
               <Avatar uri={provider.avatar} name={provider.name} size={64} ring />
             </Pressable>
           </View>
-          <Text variant="h2" center>You keep liking {first}’s work</Text>
+          <Text ref={titleRef as any} variant="h2" center>You keep liking {first}’s work</Text>
           <Text variant="small" muted center style={s.mtXs}>
             {[tasteMatch != null && `${tasteMatch}% taste match`, provider.specialties.join(', '), from != null && `from ${money(from)}`].filter(Boolean).join(' · ')}
           </Text>
@@ -320,7 +334,7 @@ export function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortliste
             <View style={[s.note, s.mtSm]}>
               <Text variant="small" style={s.grow}>
                 Your swipes aren’t saved while you’re signed out.{' '}
-                <Text variant="small" weight="700" style={s.underline} onPress={onSignIn}>Sign in</Text> to shortlist {first} and get matched to pros like this.
+                <Text variant="small" weight="700" style={s.underline} onPress={onSignIn} accessibilityRole="link">Sign in</Text> to shortlist {first} and get matched to pros like this.
               </Text>
             </View>
           )}
@@ -333,7 +347,7 @@ export function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortliste
 
 export function MatchPct({ pct, light }: { pct: number; light?: boolean }) {
   return (
-    <View style={{ alignItems: 'center' }}>
+    <View style={{ alignItems: 'center' }} importantForAccessibility="no-hide-descendants" accessibilityElementsHidden /* inside cards whose label says it */>
       <Text weight="800" color={light ? '#fff' : 'accent'}>{pct}%</Text>
       <Text variant="caption" muted={!light} style={light ? { color: 'rgba(255,255,255,0.8)' } : undefined}>match</Text>
     </View>
@@ -367,7 +381,7 @@ const useStyles = makeStyles((t) => ({
   shortItem: { gap: 10, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: t.c.line },
   shortShots: { gap: 6 },
   shortShot: { width: 76, height: 96, borderRadius: t.radius.sm },
-  remove: { width: 34, height: 34, borderRadius: t.radius.sm, backgroundColor: t.c.soft, alignItems: 'center', justifyContent: 'center' },
+  remove: { width: 36, height: 36, borderRadius: t.radius.sm, backgroundColor: t.c.soft, alignItems: 'center', justifyContent: 'center' },
   overlay: { flex: 1, backgroundColor: 'rgba(17,17,17,0.82)', alignItems: 'center', justifyContent: 'center', padding: 24 },
   matchCard: { width: '100%', maxWidth: 380, backgroundColor: t.c.bg, borderRadius: 24, padding: 20, paddingTop: 16 },
   matchShots: { height: 180, alignItems: 'center', justifyContent: 'center', marginBottom: 12 },

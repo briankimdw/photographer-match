@@ -12,14 +12,15 @@ type CardProps = {
   radius?: 'lg' | 'xl'
   style?: StyleProp<ViewStyle>
   accessibilityLabel?: string
+  accessibilityHint?: string
 }
 
-export function Card({ children, onPress, padded = true, radius = 'lg', style, accessibilityLabel }: CardProps) {
+export function Card({ children, onPress, padded = true, radius = 'lg', style, accessibilityLabel, accessibilityHint }: CardProps) {
   const s = useStyles()
   const box = [s.card, radius === 'xl' && s.xl, padded && s.padded, style]
   if (!onPress) return <View style={box}>{children}</View>
   return (
-    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} style={({ pressed }) => [...box, pressed && s.pressed]}>
+    <Pressable onPress={onPress} accessibilityRole="button" accessibilityLabel={accessibilityLabel} accessibilityHint={accessibilityHint} style={({ pressed }) => [...box, pressed && s.pressed]}>
       {children}
     </Pressable>
   )

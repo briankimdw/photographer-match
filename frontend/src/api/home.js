@@ -336,6 +336,26 @@ export function masonry(tiles, columns = 2) {
 
 // Verticals the swipe deck can show: those with visual portfolios, each with
 // `count` (active providers). counts: { slug: n } from countProvidersByVertical().
-export function deckVerticals(counts = {}) {
-  return VERTICALS.filter((v) => v.visual).map((v) => ({ ...v, count: counts[v.slug] || 0 }))
+// withPosts: Set of vertical slugs that have published posts (verticalsWithPosts());
+// a vertical whose vendors haven't posted yet would give an empty deck, so it
+// counts as 0 ("coming soon"). Until that loads, provider counts alone decide.
+export function deckVerticals(counts = {}, withPosts = null) {
+  return VERTICALS.filter((v) => v.visual).map((v) => ({
+    ...v,
+    count: withPosts && !withPosts.has(v.slug) ? 0 : counts[v.slug] || 0,
+  }))
 }
+
+// Slugs of the verticals that have at least one published post: Set<string>.
+export const verticalsWithPosts = () =>
+  cached('home:post-verticals', async () => {
+    const rows = must(
+      await supabase
+        .from('albums')
+        .select('provider:providers!albums_provider_id_fkey!inner(status, vertical:service_categories!providers_vertical_id_fkey(slug))')
+        .eq('status', 'published')
+        .eq('provider.status', 'active')
+        .limit(1000),
+    )
+    return new Set(rows.map((r) => r.provider?.vertical?.slug).filter(Boolean))
+  })

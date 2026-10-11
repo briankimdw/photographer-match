@@ -45,7 +45,7 @@ export function DatePicker({ selected = [], onToggle, isDisabled = () => false, 
         <Pressable onPress={() => setShown(new Date(shown.getFullYear(), shown.getMonth() - 1, 1))} hitSlop={8} style={s.nav} accessibilityRole="button" accessibilityLabel="Previous month">
           <ChevronLeft size={20} color={c.ink} />
         </Pressable>
-        <Text variant="h4">{title}</Text>
+        <Text variant="h4" accessibilityRole="header" accessibilityLiveRegion="polite">{title}</Text>
         <Pressable onPress={() => setShown(new Date(shown.getFullYear(), shown.getMonth() + 1, 1))} hitSlop={8} style={s.nav} accessibilityRole="button" accessibilityLabel="Next month">
           <ChevronRight size={20} color={c.ink} />
         </Pressable>
@@ -53,7 +53,7 @@ export function DatePicker({ selected = [], onToggle, isDisabled = () => false, 
       <View style={s.grid}>
         {WEEKDAYS.map((d, i) => (
           <View key={`w${i}`} style={s.cell}>
-            <Text variant="tiny" muted weight="600">{d}</Text>
+            <Text variant="tiny" muted weight="600" importantForAccessibility="no" accessibilityElementsHidden maxFontSizeMultiplier={1.3}>{d}</Text>
           </View>
         ))}
         {cells.map((d, i) => {
@@ -70,9 +70,9 @@ export function DatePicker({ selected = [], onToggle, isDisabled = () => false, 
                 style={[s.day, key === todayKey && s.today, on && s.on, disabled && s.disabled]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on, disabled }}
-                accessibilityLabel={d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+                accessibilityLabel={`${d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}${key === todayKey ? ', today' : ''}${marks.length ? `, ${marks.length} ${marks.length === 1 ? 'event' : 'events'}` : ''}`}
               >
-                <Text variant="small" weight={on ? '700' : '500'} style={{ color: on ? c.onInk : disabled ? c.faint : c.ink }}>{d.getDate()}</Text>
+                <Text variant="small" weight={on ? '700' : '500'} style={{ color: on ? c.onInk : disabled ? c.faint : c.ink }} maxFontSizeMultiplier={1.4}>{d.getDate()}</Text>
                 {marks.length > 0 && (
                   <View style={s.dots}>
                     {marks.slice(0, 3).map((m, j) => <View key={j} style={[s.dot, { backgroundColor: on ? c.onInk : m }]} />)}

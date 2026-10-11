@@ -21,6 +21,7 @@ import useQuery from '@/hooks/useQuery'
 import { StatusPill } from '@/screens/bookings/parts'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
+import { announce } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import { ShareCard, type SharedThing } from '@/components/share/ShareCard'
 import ChatInfo, { type ChatConversation } from './ChatInfo'
@@ -302,9 +303,11 @@ export default function Chat() {
           <Pressable
             onPress={send}
             disabled={!draft.trim()}
+            hitSlop={4}
             style={({ pressed }) => [s.send, !draft.trim() && s.sendOff, pressed && { opacity: 0.7 }]}
             accessibilityRole="button"
             accessibilityLabel="Send"
+            accessibilityState={{ disabled: !draft.trim() }}
           >
             <SendHorizontal size={20} color={col.onAccent} />
           </Pressable>
@@ -351,6 +354,10 @@ function MessageRow({ row, isGroup, author, onProfile, onLongPress, onRetry, onD
   const s = useStyles()
   const { c } = useTheme()
   const { m, newDay, joinsPrev, joinsNext, receipt } = row
+  // A send that failed is spoken (the red "Not sent · Retry · Delete" line is visual only).
+  useEffect(() => {
+    if (m.mine && m.failed) announce('Message not sent. Retry or delete it below the message.')
+  }, [m.mine, m.failed])
   const shared = m.shared
   return (
     <View>
@@ -363,7 +370,7 @@ function MessageRow({ row, isGroup, author, onProfile, onLongPress, onRetry, onD
         {!m.mine && (
           <View style={s.msgAvatar}>
             {!joinsNext && author && (
-              <Pressable onPress={() => onProfile(author.id)} accessibilityLabel={`${author.name}'s profile`}>
+              <Pressable onPress={() => onProfile(author.id)} accessibilityRole="link" accessibilityLabel={`${author.name}'s profile`}>
                 <Avatar uri={author.avatar} name={author.name} size={28} />
               </Pressable>
             )}
@@ -371,7 +378,7 @@ function MessageRow({ row, isGroup, author, onProfile, onLongPress, onRetry, onD
         )}
         <View style={[s.msgCol, m.mine && s.msgColMine]}>
           {!m.mine && isGroup && !joinsPrev && author && (
-            <Text variant="tiny" muted style={s.author} onPress={() => onProfile(author.id)}>{author.name}</Text>
+            <Text variant="tiny" muted style={s.author} onPress={() => onProfile(author.id)} accessibilityRole="link" accessibilityHint="Opens their profile">{author.name}</Text>
           )}
           {!!shared && <ShareCard shared={shared as SharedThing} />}
           {!!m.text && (
@@ -379,7 +386,14 @@ function MessageRow({ row, isGroup, author, onProfile, onLongPress, onRetry, onD
               onLongPress={() => !m.mine && author && onLongPress(m, author)}
               delayLongPress={350}
               style={[s.bubble, m.mine ? s.bubbleMine : s.theirs, m.pending && s.pending, !!m.failed && s.failedBubble]}
-              accessibilityHint={m.mine ? undefined : 'Long-press to report'}
+              // One element per message: who said it, what, and whether it went through. Report /
+              // block is a screen-reader action as well as a long-press.
+              accessible
+              accessibilityLabel={`${m.mine ? 'You' : author?.name || 'Them'}: ${m.text}${m.failed ? '. Not sent' : m.pending ? '. Sending' : ''}`}
+              accessibilityActions={!m.mine && author ? [{ name: 'longpress', label: 'Report or block' }] : undefined}
+              onAccessibilityAction={(e) => {
+                if (e.nativeEvent.actionName === 'longpress' && !m.mine && author) onLongPress(m, author)
+              }}
             >
               <Text style={{ color: m.mine ? c.onInk : c.ink, fontSize: 15, lineHeight: 20 }} selectable>{m.text}</Text>
             </Pressable>

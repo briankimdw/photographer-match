@@ -9,6 +9,7 @@ import useDialog from '../useDialog.js'
 import { IdVerified, ProBadge } from '../Badges.jsx'
 import ProfileLink, { PersonAvatar } from '../ProfileLink.jsx'
 import { fromPriceLabel, priceLabel } from '../Booking.jsx'
+import { callName } from '../../lib/format.js'
 import { EmptyState, ErrorState, Loading } from '../States.jsx'
 import { VerticalPickerChip, VerticalPickerSheet } from './VerticalPicker.jsx'
 import { useStore } from '../../store.jsx'
@@ -18,7 +19,7 @@ import { addDays, toKey, today } from '../../lib/dates.js'
 import { countProvidersByVertical, freeDays, getMatches, listProviders } from '../../api/catalog.js'
 import { getFeed, getTasteProfile, logSwipe, undoSwipe } from '../../api/discover.js'
 import { startInquiry } from '../../api/messages.js'
-import { deckVerticals } from '../../api/home.js'
+import { deckVerticals, verticalsWithPosts } from '../../api/home.js'
 import { getVertical } from '../../verticals/catalog.js'
 
 const THRESHOLD = 90
@@ -60,7 +61,8 @@ export default function SwipeDeck({ tabs, initialVertical = 'photography' }) {
   const feedCategory = category || vertical
   // Which verticals have providers, for the picker.
   const verticalCounts = useQuery(() => countProvidersByVertical(), [])
-  const pickable = deckVerticals(verticalCounts.data)
+  const postVerticals = useQuery(() => verticalsWithPosts(), [])
+  const pickable = deckVerticals(verticalCounts.data, postVerticals.data)
   // % match per photographer (signed in, after a few likes).
   const matches = useQuery(uid ? () => getMatches() : null, [uid])
   const matchOf = (providerId) => matches.data?.get(providerId) ?? null
@@ -736,7 +738,7 @@ function MatchOverlay({ provider, cards, tasteMatch, signedIn, shortlisted, onSh
   const ref = useRef(null)
   useDialog(ref, !!provider, onClose)
   if (!provider) return null
-  const first = provider.name.split(' ')[0]
+  const first = provider.shortName || callName(provider.name)
   return createPortal(
     <div className="match-overlay" onClick={onClose}>
       <div className="match-card" ref={ref} role="dialog" aria-modal="true" aria-labelledby="match-title" onClick={(e) => e.stopPropagation()}>

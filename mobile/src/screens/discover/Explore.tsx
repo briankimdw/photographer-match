@@ -14,6 +14,7 @@ import { invalidate } from '@shared/api/catalog.js'
 import { Avatar, Button, Chip, EmptyState, ErrorState, Photo, Text, iconByName } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
+import { IMAGE_BUTTON_ROLE } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import type { Provider, Vertical } from '@/types'
 import { DiscoverHeader, PillButton } from './DiscoverHeader'
@@ -138,7 +139,7 @@ function ExploreTile({ t, width, onOpen, onOpenProvider }: { t: Tile; width: num
       <Pressable
         onPress={onOpen}
         style={({ pressed }) => [s.tileImg, pressed && s.pressed]}
-        accessibilityRole="imagebutton"
+        accessibilityRole={IMAGE_BUTTON_ROLE}
         accessibilityLabel={`${t.title || 'Photo'} by ${p.name}`}
       >
         <Photo uri={t.src} style={{ width, height: Math.round(width * t.ratio) }} />

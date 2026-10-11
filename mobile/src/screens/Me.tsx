@@ -18,6 +18,7 @@ import { Button, Chip, EmptyState, IconButton, Loading, Text, VerticalIcon } fro
 import useQuery, { type QueryState } from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
+import { TOGGLE_ROLE } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import { ClientView, ProfileHero, RoleSwitch, SignedOut, StatTile, rating } from './account/MeParts'
 import { Callout, Group, ListRow } from './account/ui'
@@ -216,7 +217,7 @@ function ListingSwitch() {
             key={p.id}
             onPress={() => selectProvider(p.id)}
             style={[s.listing, on && s.listingOn]}
-            accessibilityRole="togglebutton"
+            accessibilityRole={TOGGLE_ROLE}
             accessibilityState={{ checked: on }}
             accessibilityLabel={p.display_name}
           >

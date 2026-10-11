@@ -9,7 +9,7 @@ import {
   ArrowUpDown, CalendarCheck, CalendarDays, Check, List, LocateFixed, Map as MapIcon, MapPin, MapPinOff, Plus, Search as SearchIcon, SearchX,
   SlidersHorizontal, X, type LucideIcon,
 } from 'lucide-react-native'
-import { Fragment, useMemo, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Pressable, ScrollView, Switch, View } from 'react-native'
 
 import { countProvidersByVertical, listProviders, searchProviders, withMatches } from '@shared/api/catalog.js'
@@ -24,6 +24,7 @@ import {
 } from '@/components'
 import { ProviderMap, type Box, type LatLng, type MapProvider } from '@/components/map'
 import useQuery from '@/hooks/useQuery'
+import { announce } from '@/lib/a11y'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
 import { makeStyles, useTheme } from '@/theme'
@@ -222,6 +223,13 @@ export default function Search() {
         ? `${fullyFree} free on ${dates.length === 1 ? 'your date' : `all ${dates.length} dates`}${results.length > fullyFree ? ` · ${results.length - fullyFree} partly free` : ''}${area ? ' here' : ''}`
         : countLabel(results.length, vertical)
   const notOnMap = view === 'map' && !area && results.length > onMap.length && onMap.length > 0 ? ` · ${results.length - onMap.length} not on map` : ''
+  // Screen readers hear the new result count once typing / filtering settles.
+  const spoken = loading || error ? '' : summary.replace(/ · /g, ', ')
+  useEffect(() => {
+    if (!spoken) return
+    const t = setTimeout(() => announce(spoken), 900)
+    return () => clearTimeout(t)
+  }, [spoken])
 
   const header = (
     <View>
@@ -240,16 +248,16 @@ export default function Search() {
 
       {/* What: vertical, then its services */}
       <ChipRow scroll style={s.rowGap}>
-        <Chip label="All" toggle on={!vertical} onPress={() => setVertical(null)} />
+        <Chip label="All" accessibilityLabel="All services" toggle select on={!vertical} onPress={() => setVertical(null)} />
         {VERTICALS.map((v: Vertical) => (
-          <Chip key={v.slug} label={v.name} icon={iconByName(v.icon)} iconTint={v.tint} toggle on={vertical === v.slug} onPress={() => setVertical(v.slug)} />
+          <Chip key={v.slug} label={v.name} icon={iconByName(v.icon)} iconTint={v.tint} toggle select on={vertical === v.slug} onPress={() => setVertical(v.slug)} />
         ))}
       </ChipRow>
       {vertical && services.length > 0 && (
         <ChipRow scroll style={s.rowGap}>
-          <Chip label={`All ${lowerFirst(meta.name)}`} on={!service} toggle onPress={() => setService(null)} />
+          <Chip label={`All ${lowerFirst(meta.name)}`} on={!service} toggle select onPress={() => setService(null)} />
           {services.map((x) => (
-            <Chip key={x.slug} label={x.name} toggle on={service === x.slug} onPress={() => setService(x.slug)} />
+            <Chip key={x.slug} label={x.name} toggle select on={service === x.slug} onPress={() => setService(x.slug)} />
           ))}
         </ChipRow>
       )}
@@ -261,12 +269,12 @@ export default function Search() {
           {dates.length ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.whenChips}>
               {dates.map((k) => (
-                <Chip key={k} label={fmtChip(fromKey(k))} iconRight={X} onPress={() => toggleDate(k)} style={s.dateChip} />
+                <Chip key={k} label={fmtChip(fromKey(k))} accessibilityLabel={`${fmtChip(fromKey(k))}, remove date`} iconRight={X} onPress={() => toggleDate(k)} style={s.dateChip} />
               ))}
-              <Chip label="Add" icon={Plus} onPress={() => setSheet('dates')} style={s.dateChip} />
+              <Chip label="Add" accessibilityLabel="Add dates" icon={Plus} onPress={() => setSheet('dates')} style={s.dateChip} />
             </ScrollView>
           ) : (
-            <Pressable onPress={() => setSheet('dates')} style={s.grow} accessibilityRole="button">
+            <Pressable onPress={() => setSheet('dates')} style={s.grow} hitSlop={{ top: 13, bottom: 13 }} accessibilityRole="button" accessibilityLabel="Dates: any date" accessibilityHint="Pick the dates you need someone for">
               <Text variant="small"><Text variant="small" weight="700">Any date</Text><Text variant="small" muted> · pick the dates you need</Text></Text>
             </Pressable>
           )}
@@ -274,17 +282,17 @@ export default function Search() {
       </View>
 
       <ChipRow scroll style={s.rowGap}>
-        <Chip label={filterCount ? `Filters · ${filterCount}` : 'Filters'} icon={SlidersHorizontal} toggle on={filterCount > 0} onPress={() => setSheet('filters')} />
-        <Chip label={SORTS[sortKey].label} icon={ArrowUpDown} toggle onPress={() => setSheet('sort')} />
+        <Chip label={filterCount ? `Filters · ${filterCount}` : 'Filters'} accessibilityLabel={filterCount ? `Filters, ${filterCount} on` : 'Filters'} icon={SlidersHorizontal} toggle asButton on={filterCount > 0} onPress={() => setSheet('filters')} />
+        <Chip label={SORTS[sortKey].label} accessibilityLabel={`Sort: ${SORTS[sortKey].label}`} icon={ArrowUpDown} toggle asButton onPress={() => setSheet('sort')} />
         {activeChips.map((x) => (
-          <Chip key={x.key} label={x.label} icon={x.icon} iconRight={X} onPress={x.clear} />
+          <Chip key={x.key} label={x.label} accessibilityLabel={`${x.label}, remove filter`} icon={x.icon} iconRight={X} onPress={x.clear} />
         ))}
       </ChipRow>
 
       {!error && !loading && !verticalEmpty && (
         <View style={s.resultBar}>
           <Text variant="small" muted numberOfLines={1} style={s.grow}>{summary}{notOnMap}</Text>
-          <View style={s.toggle} accessibilityRole="tablist">
+          <View style={s.toggle} accessibilityRole="tablist" accessibilityLabel="Show results as">
             <ViewTab icon={List} label="List" on={view === 'list'} onPress={() => setView('list')} />
             <ViewTab icon={MapIcon} label="Map" on={view === 'map'} onPress={() => setView('map')} />
           </View>
@@ -448,7 +456,7 @@ export default function Search() {
         {(Object.keys(SORTS) as SortKey[])
           .filter((key) => (key !== 'match' || hasMatches) && (key !== 'distance' || !!userLocation))
           .map((key) => (
-            <Pressable key={key} style={s.listRow} onPress={() => { setSort(key); setSheet(null) }} accessibilityRole="button">
+            <Pressable key={key} style={s.listRow} onPress={() => { setSort(key); setSheet(null) }} accessibilityRole="button" accessibilityState={{ selected: sortKey === key }}>
               <Text variant="body" style={s.grow}>{SORTS[key].label}</Text>
               {sortKey === key && <Check size={18} color={c.ink} />}
             </Pressable>
@@ -478,7 +486,7 @@ function ViewTab({ icon: Icon, label, on, onPress }: { icon: LucideIcon; label: 
   const s = useStyles()
   const { c } = useTheme()
   return (
-    <Pressable onPress={onPress} style={[s.tab, on && s.tabOn]} accessibilityRole="tab" accessibilityState={{ selected: on }}>
+    <Pressable onPress={onPress} hitSlop={{ top: 8, bottom: 8 }} style={[s.tab, on && s.tabOn]} accessibilityRole="tab" accessibilityLabel={label} accessibilityState={{ selected: on }}>
       <Icon size={14} color={on ? c.ink : c.muted} />
       <Text variant="tiny" weight="600" muted={!on}>{label}</Text>
     </Pressable>
@@ -492,7 +500,7 @@ function OptionGroup<T>({ label, options, value, onChange }: { label: string; op
       <Text variant="label" style={s.groupLabel}>{label}</Text>
       <ChipRow>
         {options.map((o) => (
-          <Chip key={o.label} label={o.label} toggle on={value === o.value} onPress={() => onChange(o.value)} />
+          <Chip key={o.label} label={o.label} accessibilityLabel={`${label}: ${o.label}`} toggle select on={value === o.value} onPress={() => onChange(o.value)} />
         ))}
       </ChipRow>
     </View>
@@ -520,7 +528,7 @@ function VerticalFilter({ filter: f, value, onChange }: { filter: any; value: an
         <Text variant="label" style={s.groupLabel}>{f.label}</Text>
         <ChipRow>
           {optionsOf(f).map((o: { value: string; label: string }) => (
-            <Chip key={o.value} label={o.label} toggle on={list.includes(o.value)} onPress={() => toggle(o.value)} />
+            <Chip key={o.value} label={o.label} accessibilityLabel={`${f.label}: ${o.label}`} toggle on={list.includes(o.value)} onPress={() => toggle(o.value)} />
           ))}
         </ChipRow>
       </View>
@@ -538,7 +546,7 @@ function ToggleRow({ label, hint, value, onChange }: { label: string; hint: stri
         <Text variant="small">{label}</Text>
         <Text variant="tiny" muted>{hint}</Text>
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.ok, false: c.line }} accessibilityLabel={label} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: c.ok, false: c.faint }} accessibilityLabel={label} accessibilityHint={hint} />
     </View>
   )
 }

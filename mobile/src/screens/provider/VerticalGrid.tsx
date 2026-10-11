@@ -29,7 +29,7 @@ export default function VerticalGrid({ value, onChange, live, taken }: Props) {
                   disabled={mine}
                   onPress={() => onChange(v.slug)}
                   accessibilityRole="radio"
-                  accessibilityState={{ checked: on, disabled: mine }}
+                  accessibilityState={{ checked: on, disabled: mine }} aria-checked={on}
                   accessibilityLabel={`${v.name}${mine ? ', already listed' : soon ? ', coming soon' : ''}`}
                   style={({ pressed }) => [s.item, on && { borderColor: v.tint, backgroundColor: `${v.tint}14` }, (mine || soon) && s.dim, pressed && { opacity: 0.7 }]}
                 >

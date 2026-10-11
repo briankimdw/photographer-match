@@ -14,10 +14,10 @@ import {
   type LucideIcon,
 } from 'lucide-react-native'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native'
+import { Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
-import { Button, IconButton, Loading, Screen, Sheet, SignInPrompt, Text } from '@/components'
+import { Button, IconButton, KeyboardView, Loading, Screen, Sheet, SignInPrompt, Text } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
@@ -229,7 +229,9 @@ function PlannerChat({ userId }: { userId: string }) {
 
   return (
     <Screen title="Plan with AI" subtitle={brief ? titleFor(brief as any) : undefined} back right={right} scroll={false} edges={['top']}>
-      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top + 48 : 0}>
+      {/* KeyboardView, not KeyboardAvoidingView: on Android edge-to-edge (SDK 57) the window
+          doesn't resize for the keyboard, so behavior={undefined} left the composer under it. */}
+      <KeyboardView style={s.flex}>
         {!started ? (
           <ScrollView contentContainerStyle={[s.intro, { paddingBottom: insets.bottom + 28 }]} keyboardShouldPersistTaps="handled">
             <AiMark size={56} />
@@ -322,7 +324,7 @@ function PlannerChat({ userId }: { userId: string }) {
             </View>
           </>
         )}
-      </KeyboardAvoidingView>
+      </KeyboardView>
 
       <Sheet open={eventsOpen} onClose={() => setEventsOpen(false)} title="My events">
         {started && (

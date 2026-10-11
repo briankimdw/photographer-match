@@ -11,6 +11,7 @@ import { Button, KeyboardView, Text, TextField, TopBar } from '@/components'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/state/auth'
 import { useStore } from '@/state/store'
+import { TOGGLE_ROLE } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import { useIncomingUrl } from './AuthCallback'
 import { completeAuthFromUrl } from './authLink'
@@ -80,7 +81,7 @@ export default function ResetPassword() {
   }
 
   const eye = (
-    <Pressable onPress={() => setShow((v) => !v)} hitSlop={8} accessibilityLabel={show ? 'Hide password' : 'Show password'}>
+    <Pressable onPress={() => setShow((v) => !v)} hitSlop={14} accessibilityRole={TOGGLE_ROLE} accessibilityLabel="Show password" accessibilityState={{ checked: show }}>
       {show ? <EyeOff size={16} color={c.muted} /> : <Eye size={16} color={c.muted} />}
     </Pressable>
   )

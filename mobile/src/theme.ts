@@ -16,20 +16,21 @@ const light = {
   ink: '#111111', // --ink (primary text, primary button background)
   onInk: '#ffffff', // text on an ink-colored surface
   muted: '#6b6b6b', // --muted (secondary text)
-  faint: '#9a9a9a', // inactive tab labels
+  faint: '#707070', // inactive tab labels, placeholders (4.5:1 on bg and soft; was #9a9a9a, 2.8:1)
   line: '#ececec', // --line (borders, dividers)
   soft: '#f5f5f4', // --soft (chips, inputs, placeholders)
   card: '#ffffff', // card surfaces
-  accent: '#ff5a36', // --accent
+  accent: '#d4401c', // --accent, deepened from the web's #ff5a36 (3.1:1) so text in it and white on it reach 4.6:1
   accentSoft: '#fff0eb', // --accent-soft
+  accentInk: '#c13a18', // accent-colored text on accentSoft (4.9:1; accent itself is 4.2:1 there)
   onAccent: '#ffffff',
-  ok: '#16a34a', // --ok
+  ok: '#15803d', // --ok (was #16a34a, 3.3:1 as text)
   warn: '#b45309',
-  danger: '#dc2626', // --danger
+  danger: '#c81e1e', // --danger (4.5:1+ on dangerSoft too)
   dangerSoft: '#fef2f2', // --danger-soft
   pro: '#7c3aed', // --pro (Verified Pro badge)
   id: '#2563eb', // --id (ID verified badge)
-  star: '#f59e0b', // --star
+  star: '#d97706', // --star (3:1 as an icon on white; the web's #f59e0b is 2.1:1)
   backdrop: 'rgba(0,0,0,0.4)', // sheet backdrop
   overlay: 'rgba(0,0,0,0.55)', // badges on photos
 }
@@ -41,18 +42,19 @@ const dark: Colors = {
   ink: '#f4f4f5',
   onInk: '#111111',
   muted: '#a1a1aa',
-  faint: '#71717a',
+  faint: '#8e8e96', // 4.5:1+ on bg, soft and card
   line: '#27272a',
   soft: '#18181b',
   card: '#121214',
   accent: '#ff6a4a',
   accentSoft: '#3b1a12',
-  onAccent: '#ffffff',
+  accentInk: '#ff6a4a',
+  onAccent: '#111111', // white on this bright orange is 2.8:1; near-black is 6.7:1
   ok: '#22c55e',
   warn: '#f59e0b',
   danger: '#f87171',
   dangerSoft: '#3a1414',
-  pro: '#8b5cf6',
+  pro: '#7c3aed', // the PRO badge's white text: 5.7:1
   id: '#60a5fa',
   star: '#fbbf24',
   backdrop: 'rgba(0,0,0,0.6)',
@@ -161,6 +163,52 @@ export function useThemePreference(): ThemeState {
 export function useTheme(): Theme {
   const ctx = useContext(ThemeContext)
   return themes[ctx?.scheme ?? 'light']
+}
+
+// A tint (a vertical's or occasion's catalog color) made readable as text or an icon on the
+// current background: mixed toward black (light) or white (dark) until it reaches `min`
+// contrast (4.5 for text, 3 for icons and borders). Catalog tints like sky, amber, teal or
+// slate are 1.9 to 2.8:1 as is. Tints that already pass are returned unchanged.
+const hexRgb = (h: string) => {
+  const x = h.replace('#', '')
+  const f = x.length === 3 ? x.split('').map((ch) => ch + ch).join('') : x.slice(0, 6)
+  return [0, 2, 4].map((i) => parseInt(f.slice(i, i + 2), 16))
+}
+const luminance = (rgb: number[]) => {
+  const [r, g, b] = rgb.map((v) => {
+    const c = v / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+export function contrastRatio(a: string, b: string) {
+  const [x, y] = [luminance(hexRgb(a)), luminance(hexRgb(b))].sort((p, q) => q - p)
+  return (x + 0.05) / (y + 0.05)
+}
+const tintCache = new Map<string, string>()
+export function readableTint(tint: string | null | undefined, scheme: Scheme, min = 4.5): string {
+  const bg = themes[scheme].c.bg
+  if (!tint || !/^#[0-9a-f]{3,8}$/i.test(tint)) return themes[scheme].c.ink
+  const key = `${tint}|${scheme}|${min}`
+  const hit = tintCache.get(key)
+  if (hit) return hit
+  const base = hexRgb(tint)
+  const to = scheme === 'dark' ? 255 : 0
+  let out = tint
+  for (let k = 0; k <= 1.0001; k += 0.04) {
+    const rgb = base.map((v) => Math.round(v + (to - v) * k))
+    const hex = '#' + rgb.map((v) => v.toString(16).padStart(2, '0')).join('')
+    out = hex
+    if (contrastRatio(hex, bg) >= min) break
+  }
+  tintCache.set(key, out)
+  return out
+}
+
+/** useTheme() + readableTint() for the current scheme. */
+export function useReadableTint() {
+  const t = useTheme()
+  return useCallback((tint: string | null | undefined, min = 4.5) => readableTint(tint, t.scheme, min), [t.scheme])
 }
 
 // Theme-aware StyleSheets:

@@ -60,7 +60,7 @@ export default function PhotoPicker({ mode, photos, copy }: { mode: PickMode; ph
                 <Text variant="small" weight="600" numberOfLines={1}>{r.name}</Text>
                 <Text variant="tiny">{r.reason}</Text>
               </View>
-              <Pressable onPress={() => dismissRejected(r.id)} hitSlop={8} accessibilityLabel={`Dismiss ${r.name}`}><X size={14} color={c.ink} /></Pressable>
+              <Pressable onPress={() => dismissRejected(r.id)} hitSlop={15} accessibilityRole="button" accessibilityLabel={`Dismiss ${r.name}`}><X size={14} color={c.ink} /></Pressable>
             </View>
           ))}
         </View>
@@ -170,7 +170,7 @@ function PhotoGrid({ photos, onAdd }: { photos: PhotoItems; onAdd: () => void })
             onPress={() => setSelId(it.id)}
             style={[s.thumb, it.id === sel.id && s.thumbOn]}
             accessibilityRole="button"
-            accessibilityLabel={`Photo ${i + 1}${i === 0 ? ', cover' : ''}`}
+            accessibilityLabel={`Photo ${i + 1} of ${items.length}${i === 0 ? ', cover' : ''}${it.lowRes ? ', low resolution' : ''}`}
             accessibilityState={{ selected: it.id === sel.id }}
           >
             {it.thumbUrl ? <Photo uri={it.thumbUrl} style={s.fill} /> : <View style={[s.fill, s.thumbLoading]} />}
@@ -210,12 +210,12 @@ function BeforeAfterSlots({ photos, onPick }: { photos: PhotoItems; onPick: (i: 
           <Pressable onPress={() => onPick(i)} style={s.slotImg} accessibilityRole="button" accessibilityLabel={`Replace the ${label.toLowerCase()} photo`}>
             {it.status === 'loading' ? <ActivityIndicator color={c.muted} /> : <Photo uri={it.asset.uri} style={s.fill} />}
           </Pressable>
-          <Pressable onPress={() => remove(it.id)} style={s.slotRemove} hitSlop={8} accessibilityLabel={`Remove the ${label.toLowerCase()} photo`}>
+          <Pressable onPress={() => remove(it.id)} style={s.slotRemove} hitSlop={10} accessibilityRole="button" accessibilityLabel={`Remove the ${label.toLowerCase()} photo`}>
             <X size={14} color="#fff" />
           </Pressable>
         </View>
       ) : (
-        <Pressable onPress={() => onPick(i)} style={[s.slotImg, s.slotEmpty]} accessibilityRole="button">
+        <Pressable onPress={() => onPick(i)} style={[s.slotImg, s.slotEmpty]} accessibilityRole="button" accessibilityLabel={`Add the ${label.toLowerCase()} photo`}>
           <Plus size={20} color={c.ink} />
           <Text variant="small">Add {label.toLowerCase()}</Text>
         </Pressable>

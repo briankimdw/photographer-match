@@ -3,10 +3,12 @@
 //   <Sheet open={open} onClose={() => setOpen(false)} title="Filters">...</Sheet>
 import { X } from 'lucide-react-native'
 import type { ReactNode } from 'react'
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, View } from 'react-native'
+import { Modal, Pressable, ScrollView, View } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useFocusOnShow, useReduceMotion } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
+import { KeyboardView } from './KeyboardView'
 import { Text } from './Text'
 
 type SheetProps = { open: boolean; onClose: () => void; title?: string; children: ReactNode; scroll?: boolean }
@@ -15,15 +17,29 @@ export function Sheet({ open, onClose, title, children, scroll = true }: SheetPr
   const s = useStyles()
   const { c } = useTheme()
   const insets = useSafeAreaInsets()
+  const reduceMotion = useReduceMotion()
+  // Screen readers: focus lands on the title when it opens; the rest of the app is hidden
+  // (accessibilityViewIsModal on iOS; Modal is its own window on Android); the iOS
+  // two-finger "scrub" (escape) gesture and Android Back close it.
+  const titleRef = useFocusOnShow(open)
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
-      <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={s.backdrop} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
-        <View style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+    <Modal visible={open} transparent animationType={reduceMotion ? 'fade' : 'slide'} onRequestClose={onClose} statusBarTranslucent>
+      {/* KeyboardView: on Android edge-to-edge the modal window doesn't resize for the keyboard. */}
+      <KeyboardView style={s.root}>
+        {/* Tap outside to close; hidden from screen readers (the X is the accessible close). */}
+        <Pressable style={s.backdrop} onPress={onClose} accessible={false} importantForAccessibility="no" aria-hidden />
+        <View
+          style={[s.sheet, { paddingBottom: Math.max(insets.bottom, 16) }]}
+          accessibilityViewIsModal
+          onAccessibilityEscape={onClose}
+          aria-modal
+          role="dialog"
+          aria-label={title}
+        >
           <View style={s.handle} />
           <View style={s.head}>
-            <Text variant="h3" style={s.title} numberOfLines={1}>{title}</Text>
-            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel="Close" style={s.close}>
+            <Text ref={titleRef as any} variant="h3" style={s.title} numberOfLines={2} maxFontSizeMultiplier={1.5}>{title}</Text>
+            <Pressable onPress={onClose} hitSlop={10} accessibilityRole="button" accessibilityLabel={title ? `Close ${title}` : 'Close'} style={s.close}>
               <X size={22} color={c.ink} />
             </Pressable>
           </View>
@@ -33,7 +49,7 @@ export function Sheet({ open, onClose, title, children, scroll = true }: SheetPr
             <View style={s.body}>{children}</View>
           )}
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardView>
     </Modal>
   )
 }

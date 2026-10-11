@@ -59,7 +59,7 @@ export default function Welcome() {
     <SafeAreaView style={s.root} edges={['top']}>
       <KeyboardView bottomInset={insets.bottom}>
         <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
-          <Text variant="display">Event Organizer<Text variant="display" color="accent">.</Text></Text>
+          <Text variant="display">Event Organizer<Text variant="display" color="accent" accessibilityRole="none">.</Text></Text>
           <Text variant="h1" style={s.title}>Welcome! What should we call you?</Text>
           <Text variant="small" muted>Vendors see your name when you message or book them.</Text>
 

@@ -6,7 +6,7 @@
 import { bookingError, requestBooking } from '@shared/api/bookings.js'
 import { freeDays, getProvider } from '@shared/api/catalog.js'
 import { addDays, fmtBooking, fmtChip, fromKey, isPast, parseDates, toKey, today } from '@shared/lib/dates.js'
-import { money, priceLabel } from '@shared/lib/format.js'
+import { callName, money, priceLabel } from '@shared/lib/format.js'
 import { attributeLines, quantityFor, sessionNoun, verticalConfig } from '@shared/verticals/index.js'
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router'
 import { CalendarX, Check, Info, MapPin, Minus, Plus } from 'lucide-react-native'
@@ -64,7 +64,7 @@ function RequestForm({ p }: { p: Provider }) {
   const pathname = usePathname()
   const { toast } = useStore()
   const { user } = useAuth()
-  const first = p.name.split(' ')[0]
+  const first = (p as any).shortName || callName(p.name)
   const isMine = !!user && user.id === p.profileId
   const addonsList = (p.addons || []) as Addon[]
   const packages = p.packages as Pkg[]
@@ -114,7 +114,12 @@ function RequestForm({ p }: { p: Provider }) {
 
   const send = async () => {
     if (!user) {
-      const query = new URLSearchParams({ ...(params.pkg ? { pkg: params.pkg } : {}), ...(params.dates ? { dates: params.dates } : {}) }).toString()
+      // Keep the whole request (incl. ?event= from an event's board) for after signing in.
+      const query = new URLSearchParams({
+        ...(params.pkg ? { pkg: params.pkg } : {}),
+        ...(params.dates ? { dates: params.dates } : {}),
+        ...(params.event ? { event: params.event } : {}),
+      }).toString()
       router.push({ pathname: '/sign-in', params: { next: `${pathname}${query ? `?${query}` : ''}` } })
       return
     }
@@ -167,7 +172,7 @@ function RequestForm({ p }: { p: Provider }) {
               onPress={() => { setPkgId(x.id); setHours(null); setQuantity(null) }}
               style={[s.option, on && s.optionOn]}
               accessibilityRole="radio"
-              accessibilityState={{ checked: on }}
+              accessibilityState={{ checked: on }} aria-checked={on}
               accessibilityLabel={`${x.name}, ${priceLabel(x)}`}
             >
               <View style={[s.radio, on && s.radioOn]}>{on && <View style={s.radioDot} />}</View>
@@ -269,7 +274,7 @@ function RequestForm({ p }: { p: Provider }) {
                   onPress={() => setAddons(on ? addons.filter((x) => x !== a.id) : [...addons, a.id])}
                   style={s.checkRow}
                   accessibilityRole="checkbox"
-                  accessibilityState={{ checked: on }}
+                  accessibilityState={{ checked: on }} aria-checked={on}
                 >
                   <View style={[s.check, on && s.checkOn]}>{on && <Check size={13} color={c.onInk} strokeWidth={3} />}</View>
                   <Text variant="body" style={s.grow}>{a.name}</Text>
@@ -324,13 +329,27 @@ function Stepper({ value, label, canDec, canInc, onDec, onInc, children }: {
 }) {
   const s = useStyles()
   const { c } = useTheme()
+  // Without a typed field: one "adjustable" element (VoiceOver / TalkBack: swipe up / down).
+  // With one (guests / items), the field and the − / + buttons stay separate so the number can be typed.
+  const adjustable = !children
   return (
-    <View style={s.stepper}>
-      <Pressable onPress={onDec} disabled={!canDec} style={[s.stepBtn, !canDec && s.stepOff]} accessibilityRole="button" accessibilityLabel={`Fewer ${label}`} hitSlop={6}>
+    <View
+      style={s.stepper}
+      accessible={adjustable}
+      accessibilityRole={adjustable ? 'adjustable' : undefined}
+      accessibilityLabel={adjustable ? label : undefined}
+      accessibilityValue={adjustable ? { text: `${value} ${label}` } : undefined}
+      accessibilityActions={adjustable ? [{ name: 'increment' }, { name: 'decrement' }] : undefined}
+      onAccessibilityAction={(e) => {
+        if (e.nativeEvent.actionName === 'increment' && canInc) onInc()
+        if (e.nativeEvent.actionName === 'decrement' && canDec) onDec()
+      }}
+    >
+      <Pressable onPress={onDec} disabled={!canDec} style={[s.stepBtn, !canDec && s.stepOff]} accessibilityRole="button" accessibilityLabel={`Fewer ${label}`} accessibilityState={{ disabled: !canDec }} hitSlop={8}>
         <Minus size={14} color={c.ink} />
       </Pressable>
-      {children ?? <Text variant="body" weight="700" style={s.stepValue}>{value}</Text>}
-      <Pressable onPress={onInc} disabled={!canInc} style={[s.stepBtn, !canInc && s.stepOff]} accessibilityRole="button" accessibilityLabel={`More ${label}`} hitSlop={6}>
+      {children ?? <Text variant="body" weight="700" style={s.stepValue} maxFontSizeMultiplier={1.5}>{value}</Text>}
+      <Pressable onPress={onInc} disabled={!canInc} style={[s.stepBtn, !canInc && s.stepOff]} accessibilityRole="button" accessibilityLabel={`More ${label}`} accessibilityState={{ disabled: !canInc }} hitSlop={8}>
         <Plus size={14} color={c.ink} />
       </Pressable>
     </View>
@@ -371,7 +390,15 @@ function QuantityStepper({ qty, value, onChange, priceText }: { qty: Qty; value:
           keyboardType="number-pad"
           returnKeyType="done"
           selectTextOnFocus
-          accessibilityLabel={qty.label}
+          accessibilityLabel={`${qty.label}, ${range}`}
+          accessibilityHint="Type a number, or use the Fewer and More buttons"
+          // Screen readers: step without leaving the field (actions menu / rotor).
+          accessibilityActions={[{ name: 'increment', label: `More ${qty.label.toLowerCase()}` }, { name: 'decrement', label: `Fewer ${qty.label.toLowerCase()}` }]}
+          onAccessibilityAction={(e) => {
+            if (e.nativeEvent.actionName === 'increment') onChange(clamp(value + step))
+            if (e.nativeEvent.actionName === 'decrement') onChange(clamp(value - step))
+          }}
+          maxFontSizeMultiplier={1.5}
           style={s.qtyInput}
         />
       </Stepper>

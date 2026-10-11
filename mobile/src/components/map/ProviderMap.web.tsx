@@ -9,6 +9,7 @@ import { fmtKm } from '@shared/api/locations.js'
 import { nounFor } from '@shared/verticals/index.js'
 import { makeStyles, useTheme } from '@/theme'
 import { Avatar } from '../Avatar'
+import { providerA11yLabel } from '../ProviderCard'
 import { Text } from '../Text'
 import { MapProviderCard } from './MapProviderCard'
 import type { ProviderMapProps } from './types'
@@ -30,7 +31,7 @@ export default function ProviderMap({ providers, focusId, dates, vertical = null
       </View>
       <ScrollView contentContainerStyle={s.list}>
         {providers.map((p) => (
-          <Pressable key={p.id} onPress={() => pick(p.id === selectedId ? null : p.id)} style={[s.row, p.id === selectedId && s.on]} accessibilityRole="button">
+          <Pressable key={p.id} onPress={() => pick(p.id === selectedId ? null : p.id)} style={[s.row, p.id === selectedId && s.on]} accessibilityRole="button" accessibilityLabel={providerA11yLabel(p)} accessibilityState={{ selected: p.id === selectedId }}>
             <View style={[s.ring, { borderColor: p.verticalInfo?.tint || c.ink }]}>
               <Avatar uri={p.avatar} name={p.name} size={34} />
             </View>

@@ -15,15 +15,16 @@ import * as WebBrowser from 'expo-web-browser'
 import { useLocalSearchParams, useRouter } from 'expo-router'
 import { ArrowLeft, Eye, EyeOff, Mail, X } from 'lucide-react-native'
 import { useEffect, useState } from 'react'
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from 'react-native'
+import { Pressable, ScrollView, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 
 import { listProviders } from '@shared/api/catalog.js'
-import { Button, Photo, Segmented, Text, TextField } from '@/components'
+import { Button, KeyboardView, Photo, Segmented, Text, TextField } from '@/components'
 import useQuery from '@/hooks/useQuery'
 import { supabase } from '@/lib/supabase'
 import { completeAuthFromUrl } from '@/screens/account/authLink'
 import { safeNext, useAuth } from '@/state/auth'
+import { TOGGLE_ROLE } from '@/lib/a11y'
 import { makeStyles, useTheme } from '@/theme'
 import type { Provider } from '@/types'
 
@@ -227,7 +228,8 @@ export default function SignIn() {
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      {/* KeyboardView: KeyboardAvoidingView with behavior={undefined} does nothing on Android edge-to-edge. */}
+      <KeyboardView style={s.flex}>
         <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled">
           <View style={s.hero}>
             <View style={s.collage}>
@@ -245,7 +247,7 @@ export default function SignIn() {
           <View style={s.body}>
             {step === 'form' && (
               <>
-                <Text variant="display">Event Organizer<Text variant="display" color="accent">.</Text></Text>
+                <Text variant="display">Event Organizer<Text variant="display" color="accent" accessibilityRole="none">.</Text></Text>
                 <Text variant="h2">{mode === 'login' ? 'Welcome back' : 'Find and book vendors you’ll love'}</Text>
 
                 <Button title="Continue with Google" variant="outline" block onPress={google} disabled={busy} style={s.mtSm} />
@@ -277,7 +279,7 @@ export default function SignIn() {
                 <TextField
                   label="Password"
                   labelRight={mode === 'login' ? (
-                    <Pressable onPress={() => go('forgot')} hitSlop={6}><Text variant="tiny">Forgot password?</Text></Pressable>
+                    <Pressable onPress={() => go('forgot')} hitSlop={{ top: 12, bottom: 12, left: 8, right: 8 }} accessibilityRole="link"><Text variant="tiny">Forgot password?</Text></Pressable>
                   ) : undefined}
                   value={password}
                   onChangeText={setPassword}
@@ -288,7 +290,7 @@ export default function SignIn() {
                   textContentType={mode === 'login' ? 'password' : 'newPassword'}
                   onSubmitEditing={mode === 'login' ? logIn : signUp}
                   right={
-                    <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={8} accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}>
+                    <Pressable onPress={() => setShowPassword((v) => !v)} hitSlop={14} accessibilityRole={TOGGLE_ROLE} accessibilityLabel="Show password" accessibilityState={{ checked: showPassword }}>
                       {showPassword ? <EyeOff size={16} color={c.muted} /> : <Eye size={16} color={c.muted} />}
                     </Pressable>
                   }
@@ -368,7 +370,7 @@ export default function SignIn() {
             <Text variant="tiny" muted center style={s.legal}>By continuing you agree to the Terms and Privacy Policy.</Text>
           </View>
         </ScrollView>
-      </KeyboardAvoidingView>
+      </KeyboardView>
     </SafeAreaView>
   )
 }
