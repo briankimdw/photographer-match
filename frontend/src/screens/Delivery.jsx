@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
-import { CalendarX, CheckCircle2, Images, MessageCircle, Timer } from 'lucide-react'
+import { Link, useParams } from 'react-router-dom'
+import { CalendarX, CheckCircle2, Timer } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
+import BookingGallery from '../components/BookingGallery.jsx'
 import { EmptyState, ErrorState, Loading, SignInPrompt } from '../components/States.jsx'
 import { useStore } from '../store.jsx'
 import { useAuth } from '../auth.jsx'
@@ -9,9 +10,8 @@ import { acceptDelivery, bookingError, getBooking } from '../api/bookings.js'
 import useQuery from '../lib/useQuery.js'
 import { fmtBooking } from '../lib/dates.js'
 
-// There's no in-app gallery storage for deliveries yet: photographers share
-// their gallery link in the booking chat. This screen shows the real delivery
-// status and lets the client accept it.
+// The booking's delivery: its status, the client's accept flow, and the in-app
+// gallery (watermarked previews; originals after the delivery is accepted).
 export default function Delivery() {
   const { id } = useParams()
   const { user, loading: authLoading } = useAuth()
@@ -26,7 +26,6 @@ export default function Delivery() {
 }
 
 function DeliveryView({ b, reload }) {
-  const navigate = useNavigate()
   const { toast } = useStore()
   const [busy, setBusy] = useState(false)
   const isClient = b.role === 'client'
@@ -85,23 +84,8 @@ function DeliveryView({ b, reload }) {
         )}
       </div>
 
-      <EmptyState
-        icon={Images}
-        title="Gallery link in chat"
-        text={
-          isClient
-            ? `${first} shares your full gallery through a link in your booking chat. In-app galleries with downloads are coming soon.`
-            : `Share the gallery link with ${first} in your booking chat. In-app gallery uploads are coming soon.`
-        }
-        action={
-          b.conversationId && (
-            <button className="btn sm" onClick={() => navigate(`/inbox/${b.conversationId}`)}>
-              <MessageCircle size={14} /> Open chat with {first}
-            </button>
-          )
-        }
-      />
-      <div className="pad-x">
+      <BookingGallery booking={b} />
+      <div className="pad-x mt-sm">
         <Link to={`/bookings/${b.id}`} className="btn ghost block">Booking details</Link>
       </div>
     </div>
