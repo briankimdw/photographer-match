@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AlertCircle, Calendar, CalendarHeart, ChevronRight, Info, MessageCircle, SendHorizontal } from 'lucide-react'
+import { AlertCircle, Calendar, CalendarHeart, ChevronRight, ImagePlus, Info, MessageCircle, SendHorizontal } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
+import GalleryUpload from '../components/GalleryUpload.jsx'
 import Sheet from '../components/Sheet.jsx'
 import PeoplePicker from '../components/PeoplePicker.jsx'
 import { StatusPill } from '../components/Booking.jsx'
@@ -18,6 +19,9 @@ import {
 } from '../api/messages.js'
 import { getBooking } from '../api/bookings.js'
 import { eventIdForConversation } from '../api/events.js'
+import { GALLERY_ACCEPT } from '../lib/galleryRules.js'
+
+const GALLERY_STATUSES = ['confirmed', 'in_progress', 'delivered'] // the provider can upload the delivery gallery
 
 const loadThread = async (id) => {
   const [conversation, messages] = await Promise.all([getConversation(id), listMessages(id)])
@@ -62,6 +66,8 @@ export default function Chat() {
   const [menu, setMenu] = useState(null)
   const [info, setInfo] = useState(false)
   const [typing, setTyping] = useState({}) // profileId -> timestamp
+  const [gallery, setGallery] = useState(null) // picked File[] while the upload sheet is open
+  const galleryInput = useRef()
   const live = useRef(null)
   const scroller = useRef()
   const bottom = useRef()
@@ -176,6 +182,7 @@ export default function Chat() {
   const receipt = !lastMine ? null : isGroup ? (seenBy.length ? `Seen by ${seenBy.length === c.members.length ? 'everyone' : seenBy.map((m) => m.name.split(' ')[0]).join(', ')}` : 'Sent') : seenBy.length ? 'Seen' : 'Sent'
 
   const typers = c.members.filter((m) => typing[m.profileId] && Date.now() - typing[m.profileId] < 4000)
+  const canUploadGallery = !!c.bookingId && booking?.role === 'provider' && GALLERY_STATUSES.includes(booking?.status)
 
   return (
     <div className="chat">
@@ -293,6 +300,25 @@ export default function Chat() {
       </div>
 
       <form className="composer sticky-bottom" onSubmit={send}>
+        {canUploadGallery && (
+          <>
+            <button type="button" className="icon-btn" aria-label="Upload gallery" title="Upload gallery" onClick={() => galleryInput.current?.click()}>
+              <ImagePlus size={20} />
+            </button>
+            <input
+              ref={galleryInput}
+              type="file"
+              multiple
+              accept={GALLERY_ACCEPT}
+              hidden
+              onChange={(e) => {
+                const picked = Array.from(e.target.files || [])
+                e.target.value = '' // so picking the same files again still fires
+                if (picked.length) setGallery(picked)
+              }}
+            />
+          </>
+        )}
         <textarea
           ref={input}
           rows={1}
@@ -328,6 +354,13 @@ export default function Chat() {
             blockProfileId: isGroup ? null : other?.profileId,
           })
         }}
+      />
+      <GalleryUpload
+        open={!!gallery}
+        bookingId={c.bookingId}
+        files={gallery}
+        onClose={() => setGallery(null)}
+        onChooseAgain={() => galleryInput.current?.click()}
       />
       <ModerationSheet open={!!menu} onClose={() => setMenu(null)} what={menu?.what} username={menu?.username} target={menu?.target} blockProfileId={menu?.blockProfileId} />
     </div>

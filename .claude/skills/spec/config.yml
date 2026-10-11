@@ -1,0 +1,13 @@
+# spec skill — configuration
+#
+# output_language:
+#   The language used for the interview questions, the playback summaries,
+#   and the spec file itself (sections 1-13). Code, commands, file paths,
+#   slugs, and technical terms always stay in English regardless of this value.
+#
+#     auto   Match the language of the conversation / target project. (default)
+#     ja     Always Japanese.
+#     en     Always English.
+#
+# To change it, edit the value below and start a new Claude Code session.
+output_language: en

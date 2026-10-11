@@ -1,0 +1,144 @@
+# Orchestrator configuration. Paths are relative to the repository root unless noted.
+# Command strings are split shell-style (no shell is used). Placeholders:
+#   {worktree}  absolute path of the task's worktree
+#   {files}     changed files matching the check's `files` globs (relative to the check's cwd)
+
+[limits]
+max_remediations = 4          # agent fix attempts after the initial implementation
+task_timeout_minutes = 45     # wall clock for the whole task (agent + checks)
+agent_timeout_minutes = 20    # per Claude invocation
+check_timeout_seconds = 600   # per verification command
+max_budget_usd = 10.0         # total Claude spend for the task
+stop_on_repeated_failure = true  # stop if a remediation leaves the exact same failures
+
+[git]
+base = "main"
+remote = "origin"
+branch_prefix = "orch/"
+# Worktrees live outside the repository so the agent can't reach the main checkout.
+# Relative to the repository's parent directory.
+worktree_root = "photographer-match.worktrees"
+
+[agent]
+command = "claude"
+model = ""                    # empty = Claude Code default
+effort = ""                   # empty = default; low|medium|high|xhigh|max
+allowed_tools = [
+  "Read", "Glob", "Grep",
+  "Edit(./**)", "Write(./**)",
+  "Bash(cd *)",
+  "Bash(.venv/bin/python -m pytest *)", "Bash(.venv/bin/python -m pytest)",
+  "Bash(.venv/bin/pytest *)", "Bash(.venv/bin/pytest)",
+  "Bash(.venv/bin/ruff *)", "Bash(.venv/bin/mypy *)",
+  "Bash(.venv/bin/pip install -r requirements.txt)",
+  "Bash(.venv/bin/pip install -r requirements-dev.txt)",
+  "Bash(backend/.venv/bin/python -m pytest *)",
+  "Bash(backend/.venv/bin/ruff *)", "Bash(backend/.venv/bin/mypy *)",
+]
+disallowed_tools = [
+  "WebFetch", "WebSearch", "Agent",
+  "Read(**/.env)", "Read(**/.env.*)", "Read(~/.ssh/**)", "Read(~/.config/gh/**)",
+  "Read(~/.claude/.credentials.json)", "Read(~/.aws/**)",
+  "Bash(git push *)", "Bash(git commit *)", "Bash(git reset *)", "Bash(git checkout *)",
+  "Bash(git switch *)", "Bash(git rebase *)", "Bash(git merge *)", "Bash(git stash *)",
+  "Bash(git clean *)", "Bash(git worktree *)", "Bash(git remote *)",
+  "Bash(gh *)", "Bash(claude *)", "Bash(*orchestrator*)", "Bash(curl *)", "Bash(wget *)",
+  "Bash(sudo *)", "Bash(rm -rf *)",
+]
+
+# One code-simplifier pass (vendored plugin, see plugins/code-simplifier/VENDORED.md) after
+# the first green verification. Runs in a fresh session limited to the task's non-test source
+# files, then the same checks and guards run again. Its changes are discarded if anything fails;
+# it never uses a remediation attempt or blocks the task. `start --no-simplify` skips it.
+[simplify]
+enabled = true
+plugin_dir = "plugins/code-simplifier"   # relative to orchestrator/
+agent = "code-simplifier:code-simplifier"
+model = ""                    # empty = the agent's own setting (opus)
+timeout_minutes = 10
+max_budget_usd = 2.0          # also counts toward [limits].max_budget_usd
+
+# Run once in a new worktree, and again whenever a file in `rerun_on` changes.
+[setup]
+commands = [
+  "python3 -m venv backend/.venv",
+  "backend/.venv/bin/pip install -q --disable-pip-version-check -r backend/requirements-dev.txt",
+]
+rerun_on = ["backend/requirements.txt", "backend/requirements-dev.txt"]
+
+# Verification runs outside the agent after every implementation/remediation turn.
+# required = true: must pass for the task to succeed.
+# when_changed: only run if the diff touches these globs.
+# files: append matching changed files as {files}; skipped when none match.
+# offline_markers: output that means the tool couldn't reach the network ("unavailable", not "failed").
+
+[[checks]]
+name = "ruff-lint"
+cwd = "backend"
+cmd = ".venv/bin/ruff check ."
+required = true
+
+[[checks]]
+name = "ruff-format"
+cwd = "backend"
+cmd = ".venv/bin/ruff format --check {files}"
+files = ["backend/**/*.py"]
+required = true
+
+[[checks]]
+name = "mypy"
+cwd = "backend"
+cmd = ".venv/bin/mypy ."
+required = true
+
+[[checks]]
+name = "pytest"
+cwd = "backend"
+cmd = ".venv/bin/python -m pytest -q -p no:cacheprovider"
+required = true
+
+[[checks]]
+name = "secrets"
+cwd = "."
+cmd = "gitleaks protect --staged --redact --no-banner --source {worktree}"
+required = true
+
+[[checks]]
+name = "pip-audit"
+cwd = "backend"
+cmd = ".venv/bin/pip-audit -r requirements.txt --progress-spinner off"
+required = false
+offline_markers = ["ConnectionError", "Temporary failure in name resolution", "Max retries exceeded"]
+
+[[checks]]
+name = "frontend-build"
+cwd = "frontend"
+cmd = "sh -c 'npm ci --ignore-scripts --no-audit --no-fund && npm run build'"
+when_changed = ["frontend/**"]
+required = true
+offline_markers = ["ENOTFOUND", "EAI_AGAIN", "ECONNREFUSED"]
+
+# Command acceptance criteria from the approved plan/spec ("AC-n: `command` ... (exit N)")
+# run as extra required checks after the configured ones: `bash -c` from the repo root.
+[acceptance]
+enabled = true
+
+[guards]
+# Changing these needs a human; the agent is told it may not.
+protected = [
+  "orchestrator/**", "plans/**", "specs/**", ".claude/**", "CLAUDE.md", ".gitignore", "*/.gitignore",
+  "backend/pyproject.toml", "backend/requirements-dev.txt", "backend/tests/conftest.py",
+  ".github/**",
+]
+test_globs = ["backend/tests/**", "**/test_*.py", "**/*_test.py"]
+secret_file_globs = [
+  "**/.env", "**/.env.*", "**/*.pem", "**/*.key", "**/id_rsa*", "**/id_ed25519*",
+  "**/.credentials.json", "**/service-account*.json",
+]
+secret_file_allow = ["**/.env.example"]
+migration_globs = ["supabase/**/*.sql"]
+
+[ship]
+gh = "gh"
+draft = false
+commit_trailers = ["Co-Authored-By: Claude <noreply@anthropic.com>"]

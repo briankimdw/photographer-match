@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Start the Vite dev server (http://localhost:5173).
+# Usage: bash ./start   (extra arguments go to vite, e.g. --host for the LAN)
+set -euo pipefail
+cd "$(dirname "$0")"
+
+if [ ! -f .env.local ] && [ ! -f .env ]; then
+  echo "frontend/.env.local is missing: copy .env.example and fill in the Supabase keys." >&2
+  exit 1
+fi
+
+# Install only when node_modules is missing or older than package-lock.json.
+if [ ! -d node_modules ] || [ package-lock.json -nt node_modules/.package-lock.json ]; then
+  echo "Installing npm packages"
+  npm install --no-audit --no-fund
+fi
+
+exec npm run dev -- "$@"

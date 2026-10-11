@@ -16,6 +16,7 @@ The main rule across all the docs: **the booking core is category-agnostic from 
 
 - [`architecture.md`](architecture.md): service-based backend design. Covers services and their boundaries, the event bus, the booking state machine, payments and escrow, the media pipeline, recommendations, the AI planner, chat contact masking, trust and safety, and build phases.
 - [`docs/PLAN.md`](docs/PLAN.md): product and feature spec for the photographer vertical. Covers posting, swipe Discover, profiles, booking flow, delivery galleries, payments, monetization, extra features, and the multi-service event expansion.
+- [`orchestrator/README.md`](orchestrator/README.md): plan-driven Claude Code orchestrator. You write and approve a plan in `plans/`, it implements and verifies it locally, then opens a PR for review.
 
 ### Open decisions: where the docs disagree
 

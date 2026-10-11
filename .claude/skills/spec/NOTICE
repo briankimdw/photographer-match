@@ -1,0 +1,20 @@
+spec-skill
+Copyright 2026 dualform-labs
+
+This product includes software developed at dualform-labs
+(https://github.com/dualform-labs).
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+---
+
+spec-skill is a documentation-only skill (a single SKILL.md prompt) for
+Claude Code. It bundles no third-party source code.
+
+"Claude" and "Claude Code" are trademarks of Anthropic, PBC. This project is
+community-built and is not affiliated with, sponsored by, or endorsed by
+Anthropic. References to Claude Code describe interoperability only.
