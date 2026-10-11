@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { Calendar, CalendarX, Clock, CreditCard, Lock, MapPin, MessageCircle, ShieldAlert } from 'lucide-react'
+import { Calendar, CalendarX, Clock, CreditCard, Lock, MapPin, MessageCircle, MessagesSquare, ShieldAlert } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
 import PersonRow from '../components/PersonRow.jsx'
 import Sheet from '../components/Sheet.jsx'
@@ -17,6 +17,7 @@ import {
   respondToBooking,
   respondToOffer,
 } from '../api/bookings.js'
+import { vendorChatForBooking } from '../api/messages.js'
 import useQuery from '../lib/useQuery.js'
 import { deliversMedia, nounFor, quantityFor, sessionNoun } from '../verticals/index.js'
 import { today } from '../lib/dates.js'
@@ -57,6 +58,8 @@ function Detail({ b, reload }) {
   const [busy, setBusy] = useState(false)
   const [counterTotal, setCounterTotal] = useState('')
   const [counterMsg, setCounterMsg] = useState('')
+  // The vendor chat of the booking's event, when there is one and I'm in it (null for bookings without an event).
+  const { data: vendorChatId } = useQuery(() => vendorChatForBooking(b.id), [b.id, b.status])
 
   // Run a booking action, then reload the booking and report the result.
   const act = async (fn, success) => {
@@ -156,6 +159,9 @@ function Detail({ b, reload }) {
         <div className="row gap-xs mt">
           {b.conversationId && (
             <button className="btn ghost grow" onClick={() => navigate(`/inbox/${b.conversationId}`)}><MessageCircle size={16} /> Message {first}</button>
+          )}
+          {vendorChatId && (
+            <button className="btn ghost grow" onClick={() => navigate(`/inbox/${vendorChatId}`)}><MessagesSquare size={16} /> Vendor chat</button>
           )}
           {CANCELLABLE.includes(b.status) && (
             <button className="btn ghost grow danger" onClick={() => setSheet('cancel')}>{b.status === 'requested' && isClient ? 'Cancel request' : 'Cancel'}</button>

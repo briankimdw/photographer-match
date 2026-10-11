@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import {
-  CalendarDays, CalendarX, Check, ChevronRight, MapPin, MessageCircle, MoreHorizontal, Search as SearchIcon, Send, ThumbsUp, Trash2, UserPlus, Users,
+  CalendarDays, CalendarX, Check, ChevronRight, MapPin, MessageCircle, MessagesSquare, MoreHorizontal, Search as SearchIcon, Send, ThumbsUp, Trash2, UserPlus,
+  Users,
 } from 'lucide-react'
 import TopBar from '../components/TopBar.jsx'
 import Sheet from '../components/Sheet.jsx'
@@ -18,9 +19,10 @@ import useQuery from '../lib/useQuery.js'
 import { cents } from '../lib/planBrief.js'
 import { priceFrom } from '../api/home.js'
 import {
-  CANDIDATE_STATUSES, EVENT_KINDS, countdownLabel, deleteEvent, editEvent, eventError, getEventBoard, leaveEvent, removeCandidate,
-  removeEventMember, setCandidateStatus, setVote, subscribeToEvent, whenLabel,
+  CANDIDATE_STATUSES, EVENT_KINDS, countdownLabel, deleteEvent, editEvent, eventError, getEventBoard, getVendorChat, leaveEvent,
+  readdVendorToChat, removeCandidate, removeEventMember, removeVendorFromChat, setCandidateStatus, setVote, subscribeToEvent, whenLabel,
 } from '../api/events.js'
+import { verticalMeta } from '../verticals/index.js'
 
 const STAGE = {
   considering: { label: 'Considering', cls: '' },
@@ -199,6 +201,7 @@ function Workspace({ board: query }) {
         )
       })}
       <p className="muted tiny pad-x mt">Add vendors from their profile with “Add to event”. Book from here and the booking is linked to this event.</p>
+      <VendorChat event={ev} />
       <div className="mt-lg" />
 
       <InviteSheet open={invite} onClose={() => setInvite(false)} event={ev} onInvited={reload} />
@@ -238,6 +241,85 @@ function Candidate({ c, onVote, onOpen, canVote }) {
         </div>
       </div>
     </div>
+  )
+}
+
+// The chat with the event's booked vendors: open it, see who's in, and (owner) remove / add back.
+function VendorChat({ event: ev }) {
+  const navigate = useNavigate()
+  const { toast } = useStore()
+  const { data: vc, error, reload } = useQuery(() => getVendorChat(ev.id), [ev.id])
+  const [confirm, setConfirm] = useState(null) // vendor about to be removed
+  const [gone, setGone] = useState(null) // name of a vendor "Add back" couldn't bring in
+  const [busy, setBusy] = useState(false)
+
+  // Hidden while loading and before the database update (getVendorChat returns null then).
+  if (!error && !vc) return null
+
+  const run = async (fn) => {
+    setBusy(true)
+    try {
+      await fn()
+      reload()
+    } catch (e) {
+      console.warn(e)
+      toast(eventError(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+  const remove = (v) =>
+    run(async () => {
+      await removeVendorFromChat(ev.id, v.provider_id)
+      setConfirm(null)
+      setGone(null)
+      toast(`Removed ${v.name} from the vendor chat`)
+    })
+  const readd = (v) =>
+    run(async () => {
+      const back = await readdVendorToChat(ev.id, v.provider_id)
+      setGone(back ? null : v.name)
+      if (back) toast(`${v.name} is back in the vendor chat`)
+    })
+
+  return (
+    <section className="pad-x mt">
+      <div className="section-label">Vendor chat</div>
+      {error ? (
+        <p className="muted small">{eventError(error)}</p>
+      ) : !vc.conversation_id ? (
+        <p className="muted small">The vendor chat opens when 2 vendors have accepted bookings for this event.</p>
+      ) : (
+        <>
+          <button className="btn block" onClick={() => navigate(`/inbox/${vc.conversation_id}`)}>
+            <MessagesSquare size={16} /> Open vendor chat
+          </button>
+          {gone && <p className="muted small mt-sm"><b>{gone}</b>: They no longer have an active booking for this event.</p>}
+          {vc.vendors.map((v) => (
+            <div key={v.provider_id} className="list-row">
+              <div className="grow">
+                <Link to={`/u/${v.provider_id}`}>{v.name}</Link>
+                <div className="muted tiny">{v.vertical ? verticalMeta(v.vertical).name : 'Vendor'}</div>
+              </div>
+              {(v.in_chat || v.removed) && <span className={`ev-pill ${v.in_chat ? 'ok' : ''}`}>{v.in_chat ? 'In chat' : 'Removed'}</span>}
+              {vc.is_owner && v.in_chat && (
+                <button className="btn sm ghost" disabled={busy} onClick={() => setConfirm(v)}>Remove</button>
+              )}
+              {vc.is_owner && v.removed && (
+                <button className="btn sm ghost" disabled={busy} onClick={() => readd(v)}>Add back</button>
+              )}
+            </div>
+          ))}
+        </>
+      )}
+      <Sheet open={!!confirm} onClose={() => setConfirm(null)} title="Remove from vendor chat?">
+        <p className="muted small">Remove {confirm?.name} from the vendor chat? Their booking isn’t affected, and their earlier messages stay.</p>
+        <div className="row gap-sm mt">
+          <button className="btn ghost grow" onClick={() => setConfirm(null)}>Cancel</button>
+          <button className="btn danger-solid grow" disabled={busy} onClick={() => remove(confirm)}>Remove</button>
+        </div>
+      </Sheet>
+    </section>
   )
 }
 

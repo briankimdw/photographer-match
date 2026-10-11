@@ -377,6 +377,29 @@ export async function eventForConversation(conversationId) {
   return { id, type: data?.type ?? null, tint: occasion?.tint ?? '#6366f1', icon: occasion?.icon ?? 'PartyPopper' }
 }
 
+// ---- vendor chat --------------------------------------------------------------
+
+/**
+ * For planners: the event's vendor chat and its vendors, or null before the migration.
+ * { conversation_id|null, closed, closes_at|null, is_owner, vendors: [{ provider_id, name, vertical, booking_status, in_chat, removed }] }
+ */
+export async function getVendorChat(eventId) {
+  const { data, error } = await supabase.rpc('event_vendor_chat', { p_event_id: eventId })
+  if (error) {
+    if (isSetupError(error)) return null
+    throw error
+  }
+  return data
+}
+
+/** The owner takes a vendor out of the vendor chat (the booking isn't affected). */
+export const removeVendorFromChat = async (eventId, providerId) =>
+  must(await supabase.rpc('remove_event_vendor', { p_event_id: eventId, p_provider_id: providerId }))
+
+/** The owner lets a removed vendor back in. False when they no longer have an active booking. */
+export const readdVendorToChat = async (eventId, providerId) =>
+  must(await supabase.rpc('readd_event_vendor', { p_event_id: eventId, p_provider_id: providerId }))
+
 // ---- the board ----------------------------------------------------------------
 
 export const CANDIDATE_STATUSES = [
