@@ -15,7 +15,7 @@ import { useAuth } from '../auth.jsx'
 import useQuery from '../lib/useQuery.js'
 import { avatarUrl } from '../lib/format.js'
 import {
-  addGroupMembers, getConversation, leaveGroup, listMessages, markRead, messageError, openChat, renameGroup, sendMessage,
+  addGroupMembers, getConversation, leaveGroup, listMessages, markRead, messageError, openChat, renameGroup, sendMessage, vendorChatInfo,
 } from '../api/messages.js'
 import { getBooking } from '../api/bookings.js'
 import { eventIdForConversation } from '../api/events.js'
@@ -62,6 +62,7 @@ export default function Chat() {
   const messages = data?.messages || []
   const { data: booking } = useQuery(c?.bookingId ? () => getBooking(c.bookingId) : null, [c?.bookingId])
   const { data: eventId } = useQuery(c?.kind === 'event' ? () => eventIdForConversation(c.id) : null, [c?.id, c?.kind]) // event chats link to their board
+  const { data: vendorInfo } = useQuery(c?.kind === 'event_vendors' ? () => vendorChatInfo(c.id) : null, [c?.id, c?.kind]) // who's who, closed or not
   const [draft, setDraft] = useState('')
   const [menu, setMenu] = useState(null)
   const [info, setInfo] = useState(false)
@@ -171,9 +172,30 @@ export default function Chat() {
   }
 
   const isGroup = c.isGroup || c.kind === 'event'
+  const isVendorChat = c.kind === 'event_vendors'
   const other = c.members[0]
   const byProfile = new Map(c.members.map((m) => [m.profileId, m]))
-  const authorOf = (m) => byProfile.get(m.from) || { id: m.from, profileId: m.from, name: 'Former member', avatar: avatarUrl(null, '?') }
+  // Vendor chats label each author by role: "Rosa · Planner", the vendor's business name.
+  const participants = new Map((vendorInfo?.participants || []).map((p) => [p.profile_id, p]))
+  const authorOf = (m) => {
+    const member = byProfile.get(m.from)
+    const base = member || { id: m.from, profileId: m.from, name: 'Former member', avatar: avatarUrl(null, '?') }
+    const p = isVendorChat ? participants.get(m.from) : null
+    if (!p) return base
+    return {
+      ...base,
+      id: p.provider_id || base.id,
+      name: p.name,
+      avatar: member ? base.avatar : avatarUrl(null, p.name),
+      label: vendorChatLabel(p),
+      former: p.role === 'vendor' && !p.active,
+    }
+  }
+  const closed = isVendorChat && !!vendorInfo?.closed
+  const closesAt = vendorInfo?.closes_at ? new Date(vendorInfo.closes_at) : null
+  const closedNotice = closesAt && closesAt <= new Date()
+    ? `This vendor chat closed on ${closesAt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. You can still read it.`
+    : 'This vendor chat is closed because the event was cancelled. You can still read it.'
   const pinned = c.bookingId ? { status: booking?.status ?? c.booking?.status, name: booking?.packageName ?? c.booking?.packageName ?? 'Booking' } : null
 
   // Read receipts for my latest delivered message.
@@ -194,9 +216,14 @@ export default function Chat() {
             <ProfileLink id={other.id}>{c.title}</ProfileLink>
           )
         }
-        subtitle={typers.length ? 'typing…' : isGroup ? `${c.members.length + 1} people` : other?.username ? `@${other.username}` : null}
+        subtitle={typers.length ? 'typing…' : isVendorChat ? `Vendor chat · ${c.members.length + 1} people` : isGroup ? `${c.members.length + 1} people` : other?.username ? `@${other.username}` : null}
         right={
           <>
+            {isVendorChat && vendorInfo?.is_planner && (
+              <Link to={`/events/${vendorInfo.event_id}`} className="icon-btn" aria-label="View event" title="View event">
+                <CalendarHeart size={20} />
+              </Link>
+            )}
             {eventId && (
               <Link to={`/events/${eventId}`} className="icon-btn" aria-label="Event board" title="Event board">
                 <CalendarHeart size={20} />
@@ -260,7 +287,12 @@ export default function Chat() {
                   </span>
                 )}
                 <div className="msg-col">
-                  {!m.mine && isGroup && !joinsPrev && <ProfileLink id={author.id} className="msg-author muted tiny">{author.name}</ProfileLink>}
+                  {!m.mine && isGroup && !joinsPrev && (
+                    <ProfileLink id={author.id} className="msg-author muted tiny">
+                      {author.label || author.name}
+                      {author.former && <span className="msg-tag">Former vendor</span>}
+                    </ProfileLink>
+                  )}
                   {shared && <ShareCard shared={shared} mine={m.mine} />}
                   {m.text && (
                     <div
@@ -299,45 +331,49 @@ export default function Chat() {
         <div ref={bottom} />
       </div>
 
-      <form className="composer sticky-bottom" onSubmit={send}>
-        {canUploadGallery && (
-          <>
-            <button type="button" className="icon-btn" aria-label="Upload gallery" title="Upload gallery" onClick={() => galleryInput.current?.click()}>
-              <ImagePlus size={20} />
-            </button>
-            <input
-              ref={galleryInput}
-              type="file"
-              multiple
-              accept={GALLERY_ACCEPT}
-              hidden
-              onChange={(e) => {
-                const picked = Array.from(e.target.files || [])
-                e.target.value = '' // so picking the same files again still fires
-                if (picked.length) setGallery(picked)
-              }}
-            />
-          </>
-        )}
-        <textarea
-          ref={input}
-          rows={1}
-          placeholder="Message…"
-          maxLength={4000}
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value)
-            if (e.target.value) live.current?.typing()
-          }}
-          onKeyDown={(e) => {
-            // Enter sends; Shift+Enter adds a line (phones show a return key, so the send button is the main path there).
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) send(e)
-          }}
-        />
-        <button className="icon-btn accent" disabled={!draft.trim()} aria-label="Send">
-          <SendHorizontal size={20} />
-        </button>
-      </form>
+      {closed ? (
+        <div className="composer sticky-bottom composer-closed muted small">{closedNotice}</div>
+      ) : (
+        <form className="composer sticky-bottom" onSubmit={send}>
+          {canUploadGallery && (
+            <>
+              <button type="button" className="icon-btn" aria-label="Upload gallery" title="Upload gallery" onClick={() => galleryInput.current?.click()}>
+                <ImagePlus size={20} />
+              </button>
+              <input
+                ref={galleryInput}
+                type="file"
+                multiple
+                accept={GALLERY_ACCEPT}
+                hidden
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files || [])
+                  e.target.value = '' // so picking the same files again still fires
+                  if (picked.length) setGallery(picked)
+                }}
+              />
+            </>
+          )}
+          <textarea
+            ref={input}
+            rows={1}
+            placeholder="Message…"
+            maxLength={4000}
+            value={draft}
+            onChange={(e) => {
+              setDraft(e.target.value)
+              if (e.target.value) live.current?.typing()
+            }}
+            onKeyDown={(e) => {
+              // Enter sends; Shift+Enter adds a line (phones show a return key, so the send button is the main path there).
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) send(e)
+            }}
+          />
+          <button className="icon-btn accent" disabled={!draft.trim()} aria-label="Send">
+            <SendHorizontal size={20} />
+          </button>
+        </form>
+      )}
 
       <ChatInfo
         open={info}
@@ -365,6 +401,18 @@ export default function Chat() {
       <ModerationSheet open={!!menu} onClose={() => setMenu(null)} what={menu?.what} username={menu?.username} target={menu?.target} blockProfileId={menu?.blockProfileId} />
     </div>
   )
+}
+
+// How a vendor chat participant is labeled above their messages.
+function vendorChatLabel(p) {
+  switch (p.role) {
+    case 'planner':
+      return `${p.name} · Planner`
+    case 'vendor':
+      return p.name
+    default:
+      return `${p.name} · Former planner`
+  }
 }
 
 // Details sheet: who's in the conversation; for groups, rename / add people / leave.
@@ -447,7 +495,7 @@ function ChatInfo({ open, onClose, conversation: c, onChanged, onLeft, onReport 
             </Link>
           ))}
           {c.isGroup && <div className="list-row muted small">+ You</div>}
-          {c.isGroup && (
+          {c.isGroup && c.kind !== 'event_vendors' && (
             <div className="settings-group mt-sm">
               <button className="list-row" onClick={() => setMode('add')}>Add people</button>
               <button className="list-row" onClick={() => { setTitle(c.customTitle || ''); setMode('rename') }}>Rename group</button>

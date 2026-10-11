@@ -52,8 +52,8 @@ function toConversation(row, uid, last = null) {
   const lastAt = last?.created_at || row.last_message_at
   return {
     id: row.id,
-    kind: row.kind, // 'direct' | 'group' | 'booking' | 'inquiry' | 'event'
-    isGroup: row.kind === 'group',
+    kind: row.kind, // 'direct' | 'group' | 'booking' | 'inquiry' | 'event' | 'event_vendors'
+    isGroup: row.kind === 'group' || row.kind === 'event_vendors',
     title: row.title || others.map((o) => (row.kind === 'group' ? o.name.split(' ')[0] : o.name)).join(', ') || 'Just you',
     customTitle: row.title,
     bookingId: row.booking_id,
@@ -89,8 +89,8 @@ export async function listConversations() {
   )
   return rows
     .map((r, i) => toConversation(r, uid, lasts[i]))
-    // Empty threads you started but never wrote in stay out of the list (except booking threads).
-    .filter((c) => c.lastMessage || c.kind === 'booking' || c.kind === 'group')
+    // Empty threads you started but never wrote in stay out of the list (except booking threads, groups and vendor chats).
+    .filter((c) => c.lastMessage || c.kind === 'booking' || c.kind === 'group' || c.kind === 'event_vendors')
     .sort((a, b) => (b.lastMessageAt || '').localeCompare(a.lastMessageAt || ''))
 }
 
@@ -406,6 +406,21 @@ export const addGroupMembers = async (conversationId, profileIds) =>
 export const renameGroup = async (conversationId, title) => must(await supabase.rpc('rename_group', { p_conversation_id: conversationId, p_title: title }))
 
 export const leaveGroup = async (conversationId) => must(await supabase.rpc('leave_group', { p_conversation_id: conversationId }))
+
+// ---------------------------------------------------------------------------
+// Event vendor chats (kind 'event_vendors'): the event's booked vendors + its planners
+// ---------------------------------------------------------------------------
+
+//   { event_id, event_title, closed, closes_at, is_planner, is_owner,
+//     participants: [{ profile_id, role: 'planner'|'vendor'|'former_planner', name, provider_id, active }] }
+export const vendorChatInfo = async (conversationId) => must(await supabase.rpc('vendor_chat_info', { p_conversation_id: conversationId }))
+
+// The vendor chat of a booking's event, if I'm in it; null otherwise (or on any error).
+export async function vendorChatForBooking(bookingId) {
+  const { data, error } = await supabase.rpc('vendor_chat_for_booking', { p_booking_id: bookingId })
+  if (error) return null
+  return data ?? null
+}
 
 // People to message: matches on name or @username (everyone, photographers and
 // clients), minus me and anyone I've blocked. Empty query = people I've talked to.

@@ -890,6 +890,8 @@ input[type=date].filter { width: 130px; }
 .msg-avatar { width: 28px; flex-shrink: 0; display: flex; align-items: flex-end; }
 .msg-avatar .avatar.sm { width: 28px; height: 28px; }
 .msg-author { padding-left: 4px; }
+.msg-tag { margin-left: 6px; padding: 1px 6px; border-radius: 999px; background: var(--soft); font-size: 10.5px; font-weight: 600; }
+.composer-closed { justify-content: center; text-align: center; padding-top: 14px; padding-bottom: 14px; }
 .bubble { white-space: pre-wrap; overflow-wrap: anywhere; }
 .msg.mine.joined .bubble { border-top-right-radius: 6px; }
 .msg:not(.mine).joined .bubble { border-top-left-radius: 6px; }
